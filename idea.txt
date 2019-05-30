@@ -1,0 +1,7 @@
+cross-platform, and preserves data across OSes
+tray icon
+Commands: start, stop
+Settings: time of day to change date, filepath for data
+saves data to csv, with a date field and hours worked field
+can output hours worked for each business week
+record time when app is closed
