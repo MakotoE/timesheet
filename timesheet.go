@@ -1,13 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"time"
 )
-
-const dataFilepath = "/home/makoto/Documents/timesheet/data"
 
 func main() {
 	flag.Parse()
@@ -20,6 +19,7 @@ func main() {
 func runCommand(command string) error {
 	switch command {
 	case "":
+		return printElapsedTime()
 	case "start":
 		return writeTime()
 	case "stop":
@@ -29,21 +29,49 @@ func runCommand(command string) error {
 	return nil
 }
 
+func printElapsedTime() error {
+	file, err := os.Open("./data")
+	if err != nil {
+		return err
+	}
+
+	duration, err := elapsedTime(file)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(duration.Seconds())
+	return nil
+}
+
+type Data struct {
+	Started   bool
+	StartTime time.Time
+}
+
 func writeTime() error {
-	b, err := time.Now().MarshalText()
+	text, err := json.Marshal(Data{true, time.Now()})
 	if err != nil {
 		return err
 	}
 
-	if err := os.Mkdir(dataFilepath, os.ModePerm); err != nil && os.IsNotExist(err) {
+	if err := os.Mkdir(".", os.ModePerm); err != nil && os.IsNotExist(err) {
 		return err
 	}
 
-	file, err := os.OpenFile(dataFilepath+"/startTime", os.O_CREATE|os.O_RDWR, 0666)
+	return ioutil.WriteFile("./data", text, 0666)
+}
+
+func elapsedTime(dataFile *os.File) (time.Duration, error) {
+	b, err := ioutil.ReadAll(dataFile)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	_, err = file.Write(b)
-	return err
+	data := &Data{}
+	if err := json.Unmarshal(b, data); err != nil {
+		return 0, err
+	}
+
+	return time.Since(data.StartTime), nil
 }
