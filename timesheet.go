@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 )
@@ -11,14 +12,14 @@ import (
 func main() {
 	flag.Parse()
 	//runCommand(flag.Arg(0))
-	if err := runCommand("start"); err != nil {
+	if err := runCommand("elapsed"); err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
 	}
 }
 
 func runCommand(command string) error {
 	switch command {
-	case "":
+	case "elapsed":
 		return printElapsedTime()
 	case "start":
 		return writeTime()
@@ -63,13 +64,8 @@ func writeTime() error {
 }
 
 func elapsedTime(dataFile *os.File) (time.Duration, error) {
-	b, err := ioutil.ReadAll(dataFile)
-	if err != nil {
-		return 0, err
-	}
-
 	data := &Data{}
-	if err := json.Unmarshal(b, data); err != nil {
+	if err := json.NewDecoder(dataFile).Decode(data); err != nil {
 		return 0, err
 	}
 
