@@ -12,5 +12,5 @@ require (
 	github.com/getlantern/systray v0.0.0-20190131073753-26d5b920200d // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190524125616-8c0b41497736 // indirect
-	github.com/pkg/errors v0.8.1 // indirect
+	github.com/pkg/errors v0.8.1
 )

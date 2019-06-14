@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -22,8 +25,9 @@ func runCommand(command string) error {
 	case "elapsed":
 		return printElapsedTime()
 	case "start":
-		return writeTime()
+		return storeTime()
 	case "stop":
+		return appendEntry()
 	}
 
 	flag.PrintDefaults()
@@ -31,12 +35,7 @@ func runCommand(command string) error {
 }
 
 func printElapsedTime() error {
-	file, err := os.Open("./data")
-	if err != nil {
-		return err
-	}
-
-	duration, err := elapsedTime(file)
+	duration, err := elapsedTime()
 	if err != nil {
 		return err
 	}
@@ -50,24 +49,48 @@ type Data struct {
 	StartTime time.Time
 }
 
-func writeTime() error {
+func storeTime() error {
 	text, err := json.Marshal(Data{true, time.Now()})
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := os.Mkdir(".", os.ModePerm); err != nil && os.IsNotExist(err) {
-		return err
+		return errors.WithStack(err)
 	}
 
 	return ioutil.WriteFile("./data", text, 0666)
 }
 
-func elapsedTime(dataFile *os.File) (time.Duration, error) {
+func elapsedTime() (time.Duration, error) {
+	file, err := os.Open("./data")
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+
 	data := &Data{}
-	if err := json.NewDecoder(dataFile).Decode(data); err != nil {
-		return 0, err
+	if err := json.NewDecoder(file).Decode(data); err != nil && err != io.EOF {
+		return 0, errors.WithStack(err)
+	}
+
+	if !data.Started {
+		return 0, errors.New("time not started")
 	}
 
 	return time.Since(data.StartTime), nil
+}
+
+func appendEntry() error {
+	duration, err := elapsedTime()
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.OpenFile("./data", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// TODO
+	_ = duration
+	return nil
 }
