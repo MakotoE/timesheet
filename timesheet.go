@@ -12,10 +12,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+const dataPath = "./data.json"
+const tablePath = "./timesheet.csv"
+
 func main() {
 	flag.Parse()
-	//runCommand(flag.Arg(0))
-	if err := runCommand("elapsed"); err != nil {
+	if err := runCommand(flag.Arg(0)); err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
 	}
 }
@@ -59,14 +61,15 @@ func storeTime() error {
 		return errors.WithStack(err)
 	}
 
-	return ioutil.WriteFile("./data", text, 0666)
+	return ioutil.WriteFile(dataPath, text, 0666)
 }
 
 func elapsedTime() (time.Duration, error) {
-	file, err := os.Open("./data")
+	file, err := os.Open(dataPath)
 	if err != nil {
 		return 0, errors.WithStack(err)
 	}
+	defer file.Close()
 
 	data := &Data{}
 	if err := json.NewDecoder(file).Decode(data); err != nil && err != io.EOF {
@@ -86,11 +89,12 @@ func appendEntry() error {
 		return err
 	}
 
-	if _, err := os.OpenFile("./data", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666); err != nil {
+	file, err := os.OpenFile(tablePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
 		return errors.WithStack(err)
 	}
+	defer file.Close()
 
-	// TODO
-	_ = duration
+	file.WriteString(duration.String() + "\n")
 	return nil
 }
