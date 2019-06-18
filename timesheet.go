@@ -27,7 +27,7 @@ func runCommand(command string) error {
 	case "elapsed":
 		return printElapsedTime()
 	case "start":
-		return storeTime()
+		return storeData(Data{true, time.Now()})
 	case "stop":
 		return appendEntry()
 	}
@@ -51,8 +51,8 @@ type Data struct {
 	StartTime time.Time
 }
 
-func storeTime() error {
-	text, err := json.Marshal(Data{true, time.Now()})
+func storeData(data Data) error {
+	text, err := json.Marshal(data)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -86,6 +86,10 @@ func elapsedTime() (time.Duration, error) {
 func appendEntry() error {
 	duration, err := elapsedTime()
 	if err != nil {
+		return err
+	}
+
+	if err = storeData(Data{Started: false}); err != nil {
 		return err
 	}
 
