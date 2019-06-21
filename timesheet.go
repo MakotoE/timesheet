@@ -36,19 +36,42 @@ func runCommand(command string) error {
 	return nil
 }
 
+type Data struct {
+	Started   bool
+	StartTime time.Time
+}
+
+func readData() (*Data, error) {
+	file, err := os.Open(dataPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &Data{}, nil
+		}
+
+		return nil, errors.WithStack(err)
+	}
+	defer file.Close()
+
+	data := &Data{}
+	if err := json.NewDecoder(file).Decode(data); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return data, nil
+}
+
 func printElapsedTime() error {
-	duration, err := elapsedTime()
+	data, err := readData()
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(duration.Seconds())
+	if data.Started {
+		fmt.Println(time.Since(data.StartTime))
+	} else {
+		os.Stderr.WriteString("timer not started\n")
+	}
 	return nil
-}
-
-type Data struct {
-	Started   bool
-	StartTime time.Time
 }
 
 func storeData(data Data) error {
@@ -84,6 +107,9 @@ func elapsedTime() (time.Duration, error) {
 }
 
 func appendEntry() error {
+	/*
+		stop should add entry but replace last if same date
+	*/
 	duration, err := elapsedTime()
 	if err != nil {
 		return err
