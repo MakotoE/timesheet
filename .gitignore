@@ -1,3 +1,4 @@
 data.json
 timesheet.csv
 *.swp
+.DS_Store

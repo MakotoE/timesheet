@@ -87,6 +87,7 @@ func storeData(data Data) error {
 	return ioutil.WriteFile(dataPath, text, 0666)
 }
 
+// TODO remove elapsedTime()
 func elapsedTime() (time.Duration, error) {
 	file, err := os.Open(dataPath)
 	if err != nil {
