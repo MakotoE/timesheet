@@ -88,9 +88,6 @@ func printElapsedTime() error {
 }
 
 func appendEntry() error {
-	/*
-		stop should add entry but replace last if same date
-	*/
 	data, err := readData()
 	if err != nil {
 		return err
@@ -115,9 +112,26 @@ func appendEntry() error {
 	lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0]))
 
 	if time.Since(lastRecordedDate) > time.Hour*24 {
-		file.WriteString(time.Since(data.StartTime).String() + "\n")
+		writer := csv.NewWriter(file)
+		writer.Write([]string{time.Now().String(), time.Since(data.StartTime).String()})
 	} else {
 		// Replace last entry with sum
+		if err := file.Truncate(0); err != nil {
+			return errors.WithStack(err)
+		}
+
+		writer := csv.NewWriter(file)
+		if err := writer.WriteAll(records[:len(records)-1]); err != nil {
+			return errors.WithStack(err)
+		}
+
+		recordedDuration, err := time.ParseDuration(records[len(records)-1][1])
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		sumDuration := recordedDuration + time.Since(data.StartTime)
+		writer.Write([]string{time.Now().String(), sumDuration.String()})
 	}
 
 	return nil
