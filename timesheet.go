@@ -16,26 +16,28 @@ const dataPath = "./data.json"
 const tablePath = "./timesheet.csv"
 
 func main() {
+	verbose := flag.Bool("v", false, "verbose")
 	flag.Parse()
-	if err := runCommand(flag.Arg(0)); err != nil {
+	if err := runCommand(flag.Arg(0), *verbose); err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
 	}
 }
 
-func runCommand(command string) error {
+func runCommand(command string, verbose bool) error {
 	switch command {
 	case "elapsed":
-		return printElapsedTime()
+		return printElapsedTime(verbose)
 	case "start":
 		return (&Data{true, time.Now()}).write()
 	case "stop":
-		return appendEntry()
+		return appendEntry(verbose)
 	}
 
 	flag.PrintDefaults()
 	return nil
 }
 
+// Data .
 type Data struct {
 	Started   bool
 	StartTime time.Time
@@ -73,10 +75,18 @@ func (data *Data) write() error {
 	return ioutil.WriteFile(dataPath, text, 0666)
 }
 
-func printElapsedTime() error {
+func printElapsedTime(verbose bool) error {
+	if verbose {
+		fmt.Println("reading", dataPath)
+	}
+
 	data, err := readData()
 	if err != nil {
 		return err
+	}
+
+	if verbose {
+		fmt.Println("parsed data:", data)
 	}
 
 	if data.Started {
@@ -87,7 +97,11 @@ func printElapsedTime() error {
 	return nil
 }
 
-func appendEntry() error {
+func appendEntry(verbose bool) error {
+	if verbose {
+		fmt.Println("reading and resetting", dataPath)
+	}
+
 	data, err := readData()
 	if err != nil {
 		return err
@@ -103,19 +117,30 @@ func appendEntry() error {
 	}
 	defer file.Close()
 
+	if verbose {
+		fmt.Println("reading", tablePath)
+	}
+
 	records, err := csv.NewReader(file).ReadAll()
 	if err != nil {
 		return errors.WithStack(err)
+	}
+
+	if verbose {
+		fmt.Println("last entry:", records[len(records)-1])
 	}
 
 	lastRecordedDate := time.Time{}
 	lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0]))
 
 	if time.Since(lastRecordedDate) > time.Hour*24 {
-		writer := csv.NewWriter(file)
-		writer.Write([]string{time.Now().String(), time.Since(data.StartTime).String()})
+		newRecord := []string{time.Now().String(), time.Since(data.StartTime).String()}
+		csv.NewWriter(file).Write(newRecord)
+
+		if verbose {
+			fmt.Println("added new entry:", newRecord)
+		}
 	} else {
-		// Replace last entry with sum
 		if err := file.Truncate(0); err != nil {
 			return errors.WithStack(err)
 		}
@@ -125,13 +150,24 @@ func appendEntry() error {
 			return errors.WithStack(err)
 		}
 
+		if verbose {
+			fmt.Println("removed last entry")
+		}
+
 		recordedDuration, err := time.ParseDuration(records[len(records)-1][1])
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		sumDuration := recordedDuration + time.Since(data.StartTime)
-		writer.Write([]string{time.Now().String(), sumDuration.String()})
+		newRecord := []string{time.Now().String(), sumDuration.String()}
+		if err := writer.Write(newRecord); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if verbose {
+			fmt.Println("added new entry:", newRecord)
+		}
 	}
 
 	return nil
