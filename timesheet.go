@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -105,6 +106,19 @@ func appendEntry() error {
 	}
 	defer file.Close()
 
-	file.WriteString(time.Since(data.StartTime).String() + "\n")
+	records, err := csv.NewReader(file).ReadAll()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	lastRecordedDate := time.Time{}
+	lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0]))
+
+	if time.Since(lastRecordedDate) > time.Hour*24 {
+		file.WriteString(time.Since(data.StartTime).String() + "\n")
+	} else {
+		// Replace last entry with sum
+	}
+
 	return nil
 }
