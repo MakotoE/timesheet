@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"time"
@@ -85,26 +84,6 @@ func printElapsedTime() error {
 		os.Stderr.WriteString("timer not started\n")
 	}
 	return nil
-}
-
-// TODO remove elapsedTime()
-func elapsedTime() (time.Duration, error) {
-	file, err := os.Open(dataPath)
-	if err != nil {
-		return 0, errors.WithStack(err)
-	}
-	defer file.Close()
-
-	data := &Data{}
-	if err := json.NewDecoder(file).Decode(data); err != nil && err != io.EOF {
-		return 0, errors.WithStack(err)
-	}
-
-	if !data.Started {
-		return 0, errors.New("time not started")
-	}
-
-	return time.Since(data.StartTime), nil
 }
 
 func appendEntry() error {
