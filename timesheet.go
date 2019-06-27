@@ -12,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-const dataPath = "./data.json"
-const tablePath = "./timesheet.csv"
+const dataPath = "./timesheetData/data.json"
+const tablePath = "./timesheetData/timesheet.csv"
 
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
