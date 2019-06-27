@@ -92,7 +92,7 @@ func printElapsedTime(verbose bool) error {
 	if data.Started {
 		fmt.Println(time.Since(data.StartTime))
 	} else {
-		os.Stderr.WriteString("timer not started\n")
+		fmt.Fprintln(os.Stderr, "timer not started")
 	}
 	return nil
 }
@@ -105,6 +105,11 @@ func appendEntry(verbose bool) error {
 	data, err := readData()
 	if err != nil {
 		return err
+	}
+
+	if !data.Started {
+		fmt.Fprintln(os.Stderr, "timer not started")
+		return nil
 	}
 
 	if err = (&Data{Started: false}).write(); err != nil {
@@ -126,14 +131,20 @@ func appendEntry(verbose bool) error {
 		return errors.WithStack(err)
 	}
 
-	if verbose {
-		fmt.Println("last entry:", records[len(records)-1])
+	lastRecordedDate := time.Time{}
+	if len(records) > 0 {
+		lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0]))
+
+		if verbose {
+			fmt.Println("last entry:", records[len(records)-1])
+		}
+	} else {
+		if verbose {
+			fmt.Println("zero records in table")
+		}
 	}
 
-	lastRecordedDate := time.Time{}
-	lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0]))
-
-	if time.Since(lastRecordedDate) > time.Hour*24 {
+	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 {
 		newRecord := []string{time.Now().String(), time.Since(data.StartTime).String()}
 		csv.NewWriter(file).Write(newRecord)
 
