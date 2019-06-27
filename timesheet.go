@@ -86,7 +86,7 @@ func printElapsedTime(verbose bool) error {
 	}
 
 	if verbose {
-		fmt.Println("parsed data:", data)
+		fmt.Printf("parsed data: %+v\n", data)
 	}
 
 	if data.Started {
@@ -111,7 +111,7 @@ func appendEntry(verbose bool) error {
 		return err
 	}
 
-	file, err := os.OpenFile(tablePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return errors.WithStack(err)
 	}
