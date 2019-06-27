@@ -133,7 +133,9 @@ func appendEntry(verbose bool) error {
 
 	lastRecordedDate := time.Time{}
 	if len(records) > 0 {
-		lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0]))
+		if err := lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0])); err != nil {
+			return errors.WithStack(err)
+		}
 
 		if verbose {
 			fmt.Println("last entry:", records[len(records)-1])
@@ -143,7 +145,12 @@ func appendEntry(verbose bool) error {
 	}
 
 	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 {
-		newRecord := []string{time.Now().String(), time.Since(data.StartTime).String()}
+		currentTime, err := time.Now().MarshalText()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		newRecord := []string{string(currentTime), time.Since(data.StartTime).String()}
 		writer := csv.NewWriter(file)
 		writer.Write(newRecord)
 		writer.Flush()
@@ -170,8 +177,13 @@ func appendEntry(verbose bool) error {
 			return errors.WithStack(err)
 		}
 
+		currentTime, err := time.Now().MarshalText()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
 		sumDuration := recordedDuration + time.Since(data.StartTime)
-		newRecord := []string{time.Now().String(), sumDuration.String()}
+		newRecord := []string{string(currentTime), sumDuration.String()}
 		if err := writer.Write(newRecord); err != nil {
 			return errors.WithStack(err)
 		}
