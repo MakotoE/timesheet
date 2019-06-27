@@ -138,15 +138,15 @@ func appendEntry(verbose bool) error {
 		if verbose {
 			fmt.Println("last entry:", records[len(records)-1])
 		}
-	} else {
-		if verbose {
-			fmt.Println("zero records in table")
-		}
+	} else if verbose {
+		fmt.Println("zero records in table")
 	}
 
 	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 {
 		newRecord := []string{time.Now().String(), time.Since(data.StartTime).String()}
-		csv.NewWriter(file).Write(newRecord)
+		writer := csv.NewWriter(file)
+		writer.Write(newRecord)
+		writer.Flush()
 
 		if verbose {
 			fmt.Println("added new entry:", newRecord)
@@ -175,6 +175,7 @@ func appendEntry(verbose bool) error {
 		if err := writer.Write(newRecord); err != nil {
 			return errors.WithStack(err)
 		}
+		writer.Flush()
 
 		if verbose {
 			fmt.Println("added new entry:", newRecord)
