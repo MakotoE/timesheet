@@ -152,7 +152,9 @@ func appendEntry(verbose bool) error {
 
 		newRecord := []string{string(currentTime), time.Since(data.StartTime).String()}
 		writer := csv.NewWriter(file)
-		writer.Write(newRecord)
+		if err := writer.Write(newRecord); err != nil {
+			return errors.WithStack(err)
+		}
 		writer.Flush()
 
 		if verbose {
