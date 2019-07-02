@@ -12,15 +12,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-const dataPath = "/timesheetData/data.json"
-const tablePath = "./timesheetData/timesheet.csv"
-
 var verbose bool
+
+var dataPath string
+var tablePath string
 
 func main() {
 	v := flag.Bool("v", false, "verbose")
 	flag.Parse()
 	verbose = *v
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	dataPath = home + "/.config/timesheet/data.json"
+	tablePath = home + "/.config/timesheet/timesheet.csv"
+
 	if err := runCommand(flag.Arg(0)); err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
 	}
