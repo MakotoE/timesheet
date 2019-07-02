@@ -12,6 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+/*
+Stop time on sleep; do not start time on wake up
+*/
+
 var verbose bool
 
 var dataPath string
