@@ -12,25 +12,28 @@ import (
 	"github.com/pkg/errors"
 )
 
-const dataPath = "./timesheetData/data.json"
+const dataPath = "/timesheetData/data.json"
 const tablePath = "./timesheetData/timesheet.csv"
 
+var verbose bool
+
 func main() {
-	verbose := flag.Bool("v", false, "verbose")
+	v := flag.Bool("v", false, "verbose")
 	flag.Parse()
-	if err := runCommand(flag.Arg(0), *verbose); err != nil {
+	verbose = *v
+	if err := runCommand(flag.Arg(0)); err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
 	}
 }
 
-func runCommand(command string, verbose bool) error {
+func runCommand(command string) error {
 	switch command {
 	case "elapsed":
-		return printElapsedTime(verbose)
+		return printElapsedTime()
 	case "start":
 		return (&Data{true, time.Now()}).write()
 	case "stop":
-		return appendEntry(verbose)
+		return appendEntry()
 	}
 
 	flag.PrintDefaults()
@@ -44,6 +47,10 @@ type Data struct {
 }
 
 func readData() (*Data, error) {
+	if verbose {
+		fmt.Println("reading", dataPath)
+	}
+
 	file, err := os.Open(dataPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -68,6 +75,10 @@ func (data *Data) write() error {
 		return errors.WithStack(err)
 	}
 
+	if verbose {
+		fmt.Println("writing to", dataPath)
+	}
+
 	if err := os.Mkdir(".", os.ModePerm); err != nil && os.IsNotExist(err) {
 		return errors.WithStack(err)
 	}
@@ -75,11 +86,7 @@ func (data *Data) write() error {
 	return ioutil.WriteFile(dataPath, text, 0666)
 }
 
-func printElapsedTime(verbose bool) error {
-	if verbose {
-		fmt.Println("reading", dataPath)
-	}
-
+func printElapsedTime() error {
 	data, err := readData()
 	if err != nil {
 		return err
@@ -97,11 +104,7 @@ func printElapsedTime(verbose bool) error {
 	return nil
 }
 
-func appendEntry(verbose bool) error {
-	if verbose {
-		fmt.Println("reading and resetting", dataPath)
-	}
-
+func appendEntry() error {
 	data, err := readData()
 	if err != nil {
 		return err
