@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -92,11 +92,29 @@ func (data *Data) write() error {
 		fmt.Println("writing to", dataPath)
 	}
 
-	if err := os.Mkdir(".", os.ModePerm); err != nil && os.IsNotExist(err) {
+	if err := os.Mkdir(dataDir(), os.ModePerm); err != nil && !os.IsExist(err) {
 		return errors.WithStack(err)
 	}
 
-	return ioutil.WriteFile(dataPath, text, 0666)
+	file, err := os.OpenFile(dataPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if _, err := file.Write(text); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return file.Sync()
+}
+
+func dataDir() string {
+	index := strings.LastIndex(dataPath, "/")
+	if index == -1 {
+		return dataPath
+	}
+
+	return dataPath[:index]
 }
 
 func printElapsedTime() error {
