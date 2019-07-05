@@ -185,7 +185,6 @@ func appendEntry() error {
 		if err := writer.Write(newRecord); err != nil {
 			return errors.WithStack(err)
 		}
-		writer.Flush()
 
 		if verbose {
 			fmt.Println("added new entry:", newRecord)
@@ -219,7 +218,6 @@ func appendEntry() error {
 		if err := writer.Write(newRecord); err != nil {
 			return errors.WithStack(err)
 		}
-		writer.Flush()
 
 		if verbose {
 			fmt.Println("added new entry:", newRecord)
