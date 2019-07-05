@@ -146,7 +146,7 @@ type Table struct {
 }
 
 func openTable(tablePath string) (*Table, error) {
-	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -159,6 +159,10 @@ func (table *Table) readAll() ([][]string, error) {
 		return nil, errors.WithStack(err)
 	}
 
+	if verbose {
+		fmt.Println("reading", tablePath)
+	}
+
 	records, err := csv.NewReader(table.File).ReadAll()
 	return records, errors.WithStack(err)
 }
@@ -166,10 +170,6 @@ func (table *Table) readAll() ([][]string, error) {
 func (table *Table) appendEntry(duration time.Duration) error {
 	currentTime, err := time.Now().MarshalText()
 	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if _, err := table.File.Seek(0, io.SeekEnd); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -191,7 +191,7 @@ func (table *Table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
-	if err := table.File.Truncate(0); err != nil {
+	if err := os.Remove(tablePath); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -200,7 +200,7 @@ func (table *Table) deleteLastEntry() error {
 	}
 
 	if verbose {
-		fmt.Println("removed last entry")
+		fmt.Println("deleted last entry")
 	}
 
 	return nil
