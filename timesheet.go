@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -135,6 +136,68 @@ func printElapsedTime() error {
 	return nil
 }
 
+// Table .
+type Table struct {
+	*os.File
+}
+
+func openTable(tablePath string) (*Table, error) {
+	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &Table{file}, nil
+}
+
+func (table *Table) readAll() ([][]string, error) {
+	if _, err := table.File.Seek(0, io.SeekStart); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	records, err := csv.NewReader(table.File).ReadAll()
+	return records, errors.WithStack(err)
+}
+
+func (table *Table) appendEntry(duration time.Duration) error {
+	currentTime, err := time.Now().MarshalText()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	newRecord := []string{string(currentTime), duration.String()}
+	if err := csv.NewWriter(table.File).Write(newRecord); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if verbose {
+		fmt.Println("added new entry:", newRecord)
+	}
+
+	return nil
+}
+
+func (table *Table) deleteLastEntry() error {
+	if err := table.File.Truncate(0); err != nil {
+		return errors.WithStack(err)
+	}
+
+	records, err := table.readAll()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if err := csv.NewWriter(table.File).WriteAll(records[:len(records)-1]); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if verbose {
+		fmt.Println("removed last entry")
+	}
+
+	return nil
+}
+
 func appendEntry() error {
 	data, err := readData()
 	if err != nil {
@@ -174,6 +237,8 @@ func appendEntry() error {
 		fmt.Println("zero records in table")
 	}
 
+	writer := csv.NewWriter(file)
+
 	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 {
 		currentTime, err := time.Now().MarshalText()
 		if err != nil {
@@ -181,7 +246,6 @@ func appendEntry() error {
 		}
 
 		newRecord := []string{string(currentTime), time.Since(data.StartTime).String()}
-		writer := csv.NewWriter(file)
 		if err := writer.Write(newRecord); err != nil {
 			return errors.WithStack(err)
 		}
@@ -194,7 +258,6 @@ func appendEntry() error {
 			return errors.WithStack(err)
 		}
 
-		writer := csv.NewWriter(file)
 		if err := writer.WriteAll(records[:len(records)-1]); err != nil {
 			return errors.WithStack(err)
 		}
