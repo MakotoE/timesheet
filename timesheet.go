@@ -102,6 +102,10 @@ func (data *Data) write() error {
 		return errors.WithStack(err)
 	}
 
+	if err := file.Truncate(0); err != nil {
+		return errors.WithStack(err)
+	}
+
 	if _, err := file.Write(text); err != nil {
 		return errors.WithStack(err)
 	}
@@ -142,7 +146,7 @@ type Table struct {
 }
 
 func openTable(tablePath string) (*Table, error) {
-	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -165,6 +169,10 @@ func (table *Table) appendEntry(duration time.Duration) error {
 		return errors.WithStack(err)
 	}
 
+	if _, err := table.File.Seek(0, io.SeekEnd); err != nil {
+		return errors.WithStack(err)
+	}
+
 	newRecord := []string{string(currentTime), duration.String()}
 	if err := csv.NewWriter(table.File).Write(newRecord); err != nil {
 		return errors.WithStack(err)
@@ -178,12 +186,12 @@ func (table *Table) appendEntry(duration time.Duration) error {
 }
 
 func (table *Table) deleteLastEntry() error {
-	if err := table.File.Truncate(0); err != nil {
+	records, err := table.readAll()
+	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	records, err := table.readAll()
-	if err != nil {
+	if err := table.File.Truncate(0); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -209,17 +217,13 @@ func appendEntry() error {
 		return nil
 	}
 
-	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	table, err := openTable(tablePath)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
-	defer file.Close()
+	defer table.Close()
 
-	if verbose {
-		fmt.Println("reading", tablePath)
-	}
-
-	records, err := csv.NewReader(file).ReadAll()
+	records, err := table.readAll()
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -237,53 +241,21 @@ func appendEntry() error {
 		fmt.Println("zero records in table")
 	}
 
-	writer := csv.NewWriter(file)
-
 	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 {
-		currentTime, err := time.Now().MarshalText()
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		newRecord := []string{string(currentTime), time.Since(data.StartTime).String()}
-		if err := writer.Write(newRecord); err != nil {
-			return errors.WithStack(err)
-		}
-
-		if verbose {
-			fmt.Println("added new entry:", newRecord)
-		}
+		table.appendEntry(time.Since(data.StartTime))
 	} else {
-		if err := file.Truncate(0); err != nil {
-			return errors.WithStack(err)
-		}
-
-		if err := writer.WriteAll(records[:len(records)-1]); err != nil {
-			return errors.WithStack(err)
-		}
-
-		if verbose {
-			fmt.Println("removed last entry")
-		}
-
 		recordedDuration, err := time.ParseDuration(records[len(records)-1][1])
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		currentTime, err := time.Now().MarshalText()
-		if err != nil {
-			return errors.WithStack(err)
+		if err := table.deleteLastEntry(); err != nil {
+			return err
 		}
 
 		sumDuration := recordedDuration + time.Since(data.StartTime)
-		newRecord := []string{string(currentTime), sumDuration.String()}
-		if err := writer.Write(newRecord); err != nil {
-			return errors.WithStack(err)
-		}
-
-		if verbose {
-			fmt.Println("added new entry:", newRecord)
+		if err := table.appendEntry(sumDuration); err != nil {
+			return err
 		}
 	}
 
