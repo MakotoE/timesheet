@@ -146,10 +146,6 @@ func appendEntry() error {
 		return nil
 	}
 
-	if err = (&Data{Started: false}).write(); err != nil {
-		return err
-	}
-
 	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return errors.WithStack(err)
@@ -228,6 +224,10 @@ func appendEntry() error {
 		if verbose {
 			fmt.Println("added new entry:", newRecord)
 		}
+	}
+
+	if err = (&Data{Started: false}).write(); err != nil {
+		return err
 	}
 
 	return nil
