@@ -242,7 +242,9 @@ func appendEntry() error {
 	}
 
 	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 {
-		table.appendEntry(time.Since(data.StartTime))
+		if err := table.appendEntry(time.Since(data.StartTime)); err != nil {
+			return err
+		}
 	} else {
 		recordedDuration, err := time.ParseDuration(records[len(records)-1][1])
 		if err != nil {
