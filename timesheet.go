@@ -13,10 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-/*
-Stop time on sleep; do not start time on wake up
-*/
-
 var verbose bool
 
 var dataPath string
@@ -249,7 +245,7 @@ func appendEntry() error {
 		fmt.Println("zero records in table")
 	}
 
-	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 {
+	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 { // TODO bug; should store date without time
 		if err := table.appendEntry(time.Since(data.StartTime)); err != nil {
 			return err
 		}
