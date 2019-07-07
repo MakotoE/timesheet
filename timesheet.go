@@ -186,18 +186,10 @@ func (table *Table) deleteLastEntry() error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	table.File.Close()
 
-	if err := os.Remove(tablePath); err != nil { // TODO truncate
+	if err := table.File.Truncate(0); err != nil {
 		return errors.WithStack(err)
 	}
-
-	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	table.File = file
 
 	if err := csv.NewWriter(table.File).WriteAll(records[:len(records)-1]); err != nil {
 		return errors.WithStack(err)
