@@ -232,20 +232,26 @@ func appendEntry() error {
 		return errors.WithStack(err)
 	}
 
-	lastRecordedDate := time.Time{}
-	if len(records) > 0 {
-		if err := lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0])); err != nil {
-			return errors.WithStack(err)
+	if len(records) == 0 {
+		if verbose {
+			fmt.Println("0 records in table")
 		}
 
-		if verbose {
-			fmt.Println("last entry:", records[len(records)-1])
+		if err := table.appendEntry(time.Since(data.StartTime)); err != nil {
+			return err
 		}
-	} else if verbose {
-		fmt.Println("zero records in table")
 	}
 
-	if len(records) == 0 || time.Since(lastRecordedDate) > time.Hour*24 { // TODO bug; should store date without time
+	lastRecordedDate := time.Time{}
+	if err := lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0])); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if verbose {
+		fmt.Println("last entry:", records[len(records)-1])
+	}
+
+	if time.Since(lastRecordedDate) > time.Hour*24 { // TODO bug; should store date without time
 		if err := table.appendEntry(time.Since(data.StartTime)); err != nil {
 			return err
 		}
