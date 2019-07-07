@@ -164,7 +164,7 @@ func (table *Table) readAll() ([][]string, error) {
 }
 
 func (table *Table) appendEntry(duration time.Duration) error {
-	currentTime, err := time.Now().MarshalText()
+	currentTime, err := time.Now().Truncate(time.Hour * 24).MarshalText()
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -188,7 +188,7 @@ func (table *Table) deleteLastEntry() error {
 	}
 	table.File.Close()
 
-	if err := os.Remove(tablePath); err != nil {
+	if err := os.Remove(tablePath); err != nil { // TODO truncate
 		return errors.WithStack(err)
 	}
 
@@ -237,9 +237,7 @@ func appendEntry() error {
 			fmt.Println("0 records in table")
 		}
 
-		if err := table.appendEntry(time.Since(data.StartTime)); err != nil {
-			return err
-		}
+		return table.appendEntry(time.Since(data.StartTime))
 	}
 
 	lastRecordedDate := time.Time{}
@@ -251,7 +249,7 @@ func appendEntry() error {
 		fmt.Println("last entry:", records[len(records)-1])
 	}
 
-	if time.Since(lastRecordedDate) > time.Hour*24 { // TODO bug; should store date without time
+	if time.Since(lastRecordedDate) > time.Hour*24 {
 		if err := table.appendEntry(time.Since(data.StartTime)); err != nil {
 			return err
 		}
