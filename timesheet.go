@@ -284,7 +284,8 @@ func appendEntry() error {
 		}
 	}
 
-	if err = (&Data{Started: false}).write(); err != nil {
+	data.Started = false
+	if err = data.write(); err != nil {
 		return err
 	}
 
