@@ -191,9 +191,20 @@ func (table *Table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
-	if err := table.File.Truncate(0); err != nil {
+	table.File.Close()
+	table.File = nil
+
+	// Workaround for access denied error with file.Truncate() bug in Windows
+	if err := os.Truncate(tablePath, 0); err != nil {
 		return errors.WithStack(err)
 	}
+
+	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	table.File = file
 
 	if err := csv.NewWriter(table.File).WriteAll(records[:len(records)-1]); err != nil {
 		return errors.WithStack(err)
