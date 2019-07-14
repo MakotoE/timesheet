@@ -191,6 +191,13 @@ func (table *Table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
+	stat, err := table.File.Stat()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	tablePath := stat.Name()
+
 	table.File.Close()
 	table.File = nil
 
