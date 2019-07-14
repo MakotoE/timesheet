@@ -16,7 +16,6 @@ import (
 var verbose bool
 
 var dataPath string
-var tablePath string
 
 func main() {
 	v := flag.Bool("v", false, "verbose")
@@ -156,7 +155,12 @@ func (table *Table) readAll() ([][]string, error) {
 	}
 
 	if verbose {
-		fmt.Println("reading", tablePath)
+		info, err := table.File.Stat()
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Println("reading", info.Name())
 	}
 
 	records, err := csv.NewReader(table.File).ReadAll()
@@ -210,7 +214,6 @@ func start() error {
 
 	data.Started = true
 	data.StartTime = time.Now()
-
 	return data.write()
 }
 
@@ -225,7 +228,12 @@ func appendEntry() error {
 		return nil
 	}
 
-	table, err := openTable(tablePath)
+	if data.TablePath == "" {
+		fmt.Fprintln(os.Stderr, "TablePath not set")
+		return nil
+	}
+
+	table, err := openTable(data.TablePath)
 	if err != nil {
 		return err
 	}
