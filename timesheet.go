@@ -42,6 +42,8 @@ func runCommand(command string) error {
 		return start()
 	case "stop":
 		return appendEntry()
+	case "setTablePath":
+		return setTablePath()
 	}
 
 	flag.PrintDefaults()
@@ -96,6 +98,7 @@ func (data *Data) write() error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	defer file.Close()
 
 	if err := file.Truncate(0); err != nil {
 		return errors.WithStack(err)
@@ -286,4 +289,14 @@ func appendEntry() error {
 	}
 
 	return nil
+}
+
+func setTablePath() error {
+	data, err := readData()
+	if err != nil {
+		return err
+	}
+
+	data.TablePath = flag.Arg(1)
+	return data.write()
 }
