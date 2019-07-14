@@ -104,11 +104,8 @@ func (data *Data) write() error {
 		return errors.WithStack(err)
 	}
 
-	if _, err := file.Write(text); err != nil {
-		return errors.WithStack(err)
-	}
-
-	return file.Sync()
+	_, err = file.Write(text)
+	return errors.WithStack(err)
 }
 
 func dataDir() string {
