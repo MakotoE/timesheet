@@ -29,7 +29,6 @@ func main() {
 	}
 
 	dataPath = home + "/.config/timesheet/data.json"
-	tablePath = home + "/.config/timesheet/timesheet.csv"
 
 	if err := runCommand(flag.Arg(0)); err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
@@ -41,7 +40,7 @@ func runCommand(command string) error {
 	case "elapsed":
 		return printElapsedTime()
 	case "start":
-		return (&Data{true, time.Now()}).write()
+		return start()
 	case "stop":
 		return appendEntry()
 	}
@@ -54,6 +53,7 @@ func runCommand(command string) error {
 type Data struct {
 	Started   bool
 	StartTime time.Time
+	TablePath string
 }
 
 func readData() (*Data, error) {
@@ -200,6 +200,18 @@ func (table *Table) deleteLastEntry() error {
 	}
 
 	return nil
+}
+
+func start() error {
+	data, err := readData()
+	if err != nil {
+		return err
+	}
+
+	data.Started = true
+	data.StartTime = time.Now()
+
+	return data.write()
 }
 
 func appendEntry() error {
