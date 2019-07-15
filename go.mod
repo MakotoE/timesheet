@@ -1,4 +1,4 @@
-module timesheet
+module github.com/MakotoE/timesheet
 
 go 1.12
 
