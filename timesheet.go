@@ -138,7 +138,7 @@ func printElapsedTime() error {
 // Table .
 type Table struct {
 	*os.File
-	path string
+	Path string
 }
 
 func openTable(tablePath string) (*Table, error) {
@@ -156,7 +156,7 @@ func (table *Table) readAll() ([][]string, error) {
 	}
 
 	if verbose {
-		fmt.Println("reading", table.path)
+		fmt.Println("reading", table.Path)
 	}
 
 	records, err := csv.NewReader(table.File).ReadAll()
