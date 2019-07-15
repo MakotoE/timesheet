@@ -50,14 +50,13 @@ func runCommand(command string) error {
 	return nil
 }
 
-// Data .
-type Data struct {
+type data struct {
 	Started   bool
 	StartTime time.Time
 	TablePath string
 }
 
-func readData() (*Data, error) {
+func readData() (*data, error) {
 	if verbose {
 		fmt.Println("reading", dataPath)
 	}
@@ -65,23 +64,23 @@ func readData() (*Data, error) {
 	file, err := os.Open(dataPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &Data{}, nil
+			return &data{}, nil
 		}
 
 		return nil, errors.WithStack(err)
 	}
 	defer file.Close()
 
-	data := &Data{}
-	if err := json.NewDecoder(file).Decode(data); err != nil {
+	d := &data{}
+	if err := json.NewDecoder(file).Decode(d); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return data, nil
+	return d, nil
 }
 
-func (data *Data) write() error {
-	text, err := json.Marshal(data)
+func (d *data) write() error {
+	text, err := json.Marshal(d)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -118,59 +117,58 @@ func dataDir() string {
 }
 
 func printElapsedTime() error {
-	data, err := readData()
+	d, err := readData()
 	if err != nil {
 		return err
 	}
 
 	if verbose {
-		fmt.Printf("parsed data: %+v\n", data)
+		fmt.Printf("parsed data: %+v\n", d)
 	}
 
-	if data.Started {
-		fmt.Println(time.Since(data.StartTime))
+	if d.Started {
+		fmt.Println(time.Since(d.StartTime))
 	} else {
 		fmt.Fprintln(os.Stderr, "timer not started")
 	}
 	return nil
 }
 
-// Table .
-type Table struct {
+type table struct {
 	*os.File
-	path string
+	Path string
 }
 
-func openTable(tablePath string) (*Table, error) {
+func openTable(tablePath string) (*table, error) {
 	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return &Table{file, tablePath}, nil
+	return &table{file, tablePath}, nil
 }
 
-func (table *Table) readAll() ([][]string, error) {
-	if _, err := table.File.Seek(0, io.SeekStart); err != nil {
+func (t *table) readAll() ([][]string, error) {
+	if _, err := t.File.Seek(0, io.SeekStart); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	if verbose {
-		fmt.Println("reading", table.path)
+		fmt.Println("reading", t.Path)
 	}
 
-	records, err := csv.NewReader(table.File).ReadAll()
+	records, err := csv.NewReader(t.File).ReadAll()
 	return records, errors.WithStack(err)
 }
 
-func (table *Table) appendEntry(duration time.Duration) error {
+func (t *table) appendEntry(duration time.Duration) error {
 	currentTime, err := time.Now().Truncate(time.Hour * 24).MarshalText()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	newRecord := []string{string(currentTime), duration.String()}
-	if err := csv.NewWriter(table.File).WriteAll([][]string{newRecord}); err != nil {
+	if err := csv.NewWriter(t.File).WriteAll([][]string{newRecord}); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -181,21 +179,21 @@ func (table *Table) appendEntry(duration time.Duration) error {
 	return nil
 }
 
-func (table *Table) deleteLastEntry() error {
-	records, err := table.readAll()
+func (t *table) deleteLastEntry() error {
+	records, err := t.readAll()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	stat, err := table.File.Stat()
+	stat, err := t.File.Stat()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	tablePath := stat.Name()
 
-	table.File.Close()
-	table.File = nil
+	t.File.Close()
+	t.File = nil
 
 	// Workaround for access denied error with file.Truncate() bug in Windows
 	if err := os.Truncate(tablePath, 0); err != nil {
@@ -207,9 +205,9 @@ func (table *Table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
-	table.File = file
+	t.File = file
 
-	if err := csv.NewWriter(table.File).WriteAll(records[:len(records)-1]); err != nil {
+	if err := csv.NewWriter(t.File).WriteAll(records[:len(records)-1]); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -221,33 +219,33 @@ func (table *Table) deleteLastEntry() error {
 }
 
 func start() error {
-	data, err := readData()
+	d, err := readData()
 	if err != nil {
 		return err
 	}
 
-	data.Started = true
-	data.StartTime = time.Now()
-	return data.write()
+	d.Started = true
+	d.StartTime = time.Now()
+	return d.write()
 }
 
 func appendEntry() error {
-	data, err := readData()
+	d, err := readData()
 	if err != nil {
 		return err
 	}
 
-	if !data.Started {
+	if !d.Started {
 		fmt.Fprintln(os.Stderr, "timer not started")
 		return nil
 	}
 
-	if data.TablePath == "" {
+	if d.TablePath == "" {
 		fmt.Fprintln(os.Stderr, "TablePath not set")
 		return nil
 	}
 
-	table, err := openTable(data.TablePath)
+	table, err := openTable(d.TablePath)
 	if err != nil {
 		return err
 	}
@@ -263,7 +261,7 @@ func appendEntry() error {
 			fmt.Println("0 records in table")
 		}
 
-		return table.appendEntry(time.Since(data.StartTime))
+		return table.appendEntry(time.Since(d.StartTime))
 	}
 
 	lastRecordedDate := time.Time{}
@@ -276,7 +274,7 @@ func appendEntry() error {
 	}
 
 	if time.Since(lastRecordedDate) > time.Hour*24 {
-		if err := table.appendEntry(time.Since(data.StartTime)); err != nil {
+		if err := table.appendEntry(time.Since(d.StartTime)); err != nil {
 			return err
 		}
 	} else {
@@ -289,14 +287,14 @@ func appendEntry() error {
 			return err
 		}
 
-		sumDuration := recordedDuration + time.Since(data.StartTime)
+		sumDuration := recordedDuration + time.Since(d.StartTime)
 		if err := table.appendEntry(sumDuration); err != nil {
 			return err
 		}
 	}
 
-	data.Started = false
-	if err = data.write(); err != nil {
+	d.Started = false
+	if err = d.write(); err != nil {
 		return err
 	}
 
@@ -304,11 +302,11 @@ func appendEntry() error {
 }
 
 func setTablePath() error {
-	data, err := readData()
+	d, err := readData()
 	if err != nil {
 		return err
 	}
 
-	data.TablePath = flag.Arg(1)
-	return data.write()
+	d.TablePath = flag.Arg(1)
+	return d.write()
 }
