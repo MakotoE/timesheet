@@ -37,13 +37,13 @@ func main() {
 func runCommand(command string) error {
 	switch command {
 	case "elapsed":
-		return printElapsedTime()
+		return PrintElapsedTime()
 	case "start":
-		return start()
+		return Start()
 	case "stop":
-		return appendEntry()
+		return AppendEntry()
 	case "setTablePath":
-		return setTablePath()
+		return SetTablePath()
 	}
 
 	flag.PrintDefaults()
@@ -116,7 +116,8 @@ func dataDir() string {
 	return dataPath[:index]
 }
 
-func printElapsedTime() error {
+// PrintElapsedTime prints the duration since start time.
+func PrintElapsedTime() error {
 	d, err := readData()
 	if err != nil {
 		return err
@@ -218,7 +219,8 @@ func (t *table) deleteLastEntry() error {
 	return nil
 }
 
-func start() error {
+// Start writes start time to data file.
+func Start() error {
 	d, err := readData()
 	if err != nil {
 		return err
@@ -229,7 +231,9 @@ func start() error {
 	return d.write()
 }
 
-func appendEntry() error {
+// AppendEntry clears start time from data file, erases last entry from table if last entry was made
+// on the same day, and appends duration since start time to table.
+func AppendEntry() error {
 	d, err := readData()
 	if err != nil {
 		return err
@@ -301,7 +305,8 @@ func appendEntry() error {
 	return nil
 }
 
-func setTablePath() error {
+// SetTablePath writes argument 1 to TablePath entry in data file.
+func SetTablePath() error {
 	d, err := readData()
 	if err != nil {
 		return err
