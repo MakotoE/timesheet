@@ -9,8 +9,9 @@ require (
 	github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 // indirect
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55 // indirect
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f // indirect
-	github.com/getlantern/systray v0.0.0-20190131073753-26d5b920200d // indirect
+	github.com/getlantern/systray v0.0.0-20190626064521-f2fa635d0474
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190524125616-8c0b41497736 // indirect
 	github.com/pkg/errors v0.8.1
+	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
 )
