@@ -123,6 +123,9 @@ func openTable(tablePath string) (*table, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	stat, err := file.Stat()
+	_ = stat
+	_ = err
 
 	return &table{file, tablePath}, nil
 }
