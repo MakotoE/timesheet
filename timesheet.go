@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Verbose output.
 var Verbose bool
 
 var dataPath string
