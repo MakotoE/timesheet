@@ -27,7 +27,6 @@ func init() {
 	dataPath = home + "/.config/timesheet/data.json"
 }
 
-// Data .
 type data struct {
 	Started   bool
 	StartTime time.Time
