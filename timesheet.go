@@ -209,9 +209,9 @@ func Start() error {
 	return d.write()
 }
 
-// AppendEntry clears start time from data file, erases last entry from table if last entry was made
+// Stop clears start time from data file, erases last entry from table if last entry was made
 // on the same day, and appends duration since start time to table.
-func AppendEntry() error {
+func Stop() error {
 	d, err := readData()
 	if err != nil {
 		return err

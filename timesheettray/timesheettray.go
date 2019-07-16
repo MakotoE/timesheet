@@ -1,12 +1,16 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/MakotoE/timesheet"
 	"github.com/getlantern/systray"
 )
 
 func main() {
-	systray.Run(onReady, onExit)
+	systray.Run(onReady, func() {})
 }
 
 func onReady() {
@@ -19,9 +23,15 @@ loop:
 	for {
 		select {
 		case <-startItem.ClickedCh:
-			timesheet.Start()
+			if err := timesheet.Start(); err != nil {
+				logErr(err)
+				break loop
+			}
 		case <-stopItem.ClickedCh:
-			timesheet.AppendEntry()
+			if err := timesheet.Stop(); err != nil {
+				logErr(err)
+				break loop
+			}
 		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
@@ -29,6 +39,15 @@ loop:
 	}
 }
 
-func onExit() {
+func logErr(e error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
 
+	errorText := fmt.Sprintf("%+v\n", e)
+
+	if err := ioutil.WriteFile(home+"/.config/log.txt", []byte(errorText), 0666); err != nil {
+		panic(err)
+	}
 }
