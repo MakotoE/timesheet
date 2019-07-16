@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/MakotoE/timesheet"
 )
 
 func main() {
@@ -27,13 +29,13 @@ func runCommand(command string) error {
 
 	switch command {
 	case "elapsed":
-		return printElapsedTime()
+		return timesheet.PrintElapsedTime()
 	case "start":
-		return start()
+		return timesheet.Start()
 	case "stop":
-		return appendEntry()
+		return timesheet.AppendEntry()
 	case "setTablePath":
-		return setTablePath()
+		return timesheet.SetTablePath()
 	}
 
 	flag.PrintDefaults()
