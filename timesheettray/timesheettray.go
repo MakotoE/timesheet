@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/MakotoE/timesheet"
 	"github.com/getlantern/systray"
@@ -19,6 +20,25 @@ func onReady() {
 	stopItem := systray.AddMenuItem("Stop", "Stop timer")
 	exitItem := systray.AddMenuItem("Exit", "")
 
+	executablePath, err := os.Executable()
+	if err != nil {
+		logErr(err)
+		systray.Quit()
+	}
+
+	iconDir := filepath.Dir(executablePath) + "/timesheettrayIcons"
+	pauseIcon, err := ioutil.ReadFile(iconDir + "/pause.ico")
+	if err != nil {
+		logErr(err)
+		systray.Quit()
+	}
+
+	playIcon, err := ioutil.ReadFile(iconDir + "/play.ico")
+	if err != nil {
+		logErr(err)
+		systray.Quit()
+	}
+
 loop:
 	for {
 		select {
@@ -27,11 +47,15 @@ loop:
 				logErr(err)
 				break loop
 			}
+
+			systray.SetIcon(playIcon)
 		case <-stopItem.ClickedCh:
 			if err := timesheet.Stop(); err != nil {
 				logErr(err)
 				break loop
 			}
+
+			systray.SetIcon(pauseIcon)
 		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
