@@ -17,6 +17,15 @@ var verbose bool
 
 var dataPath string
 
+func init() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	dataPath = home + "/.config/timesheet/data.json"
+}
+
 // Data .
 type data struct {
 	Started   bool
