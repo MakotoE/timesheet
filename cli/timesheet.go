@@ -10,7 +10,7 @@ import (
 func main() {
 	v := flag.Bool("v", false, "verbose")
 	flag.Parse()
-	verbose = *v
+	timesheet.Verbose = *v
 
 	if err := runCommand(flag.Arg(0)); err != nil {
 		panic(fmt.Sprintf("%+v\n", err))

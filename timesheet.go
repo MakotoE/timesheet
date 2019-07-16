@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var verbose bool
+var Verbose bool
 
 var dataPath string
 
@@ -34,7 +34,7 @@ type data struct {
 }
 
 func readData() (*data, error) {
-	if verbose {
+	if Verbose {
 		fmt.Println("reading", dataPath)
 	}
 
@@ -62,7 +62,7 @@ func (d *data) write() error {
 		return errors.WithStack(err)
 	}
 
-	if verbose {
+	if Verbose {
 		fmt.Println("writing to", dataPath)
 	}
 
@@ -100,7 +100,7 @@ func PrintElapsedTime() error {
 		return err
 	}
 
-	if verbose {
+	if Verbose {
 		fmt.Printf("parsed data: %+v\n", d)
 	}
 
@@ -131,7 +131,7 @@ func (t *table) readAll() ([][]string, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	if verbose {
+	if Verbose {
 		fmt.Println("reading", t.path)
 	}
 
@@ -150,7 +150,7 @@ func (t *table) appendEntry(duration time.Duration) error {
 		return errors.WithStack(err)
 	}
 
-	if verbose {
+	if Verbose {
 		fmt.Println("added new entry:", newRecord)
 	}
 
@@ -189,7 +189,7 @@ func (t *table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
-	if verbose {
+	if Verbose {
 		fmt.Println("deleted last entry")
 	}
 
@@ -238,7 +238,7 @@ func AppendEntry() error {
 	}
 
 	if len(records) == 0 {
-		if verbose {
+		if Verbose {
 			fmt.Println("0 records in table")
 		}
 
@@ -250,7 +250,7 @@ func AppendEntry() error {
 		return errors.WithStack(err)
 	}
 
-	if verbose {
+	if Verbose {
 		fmt.Println("last entry:", records[len(records)-1])
 	}
 
