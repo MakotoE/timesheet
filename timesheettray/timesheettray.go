@@ -69,9 +69,9 @@ func logErr(e error) {
 		panic(err)
 	}
 
-	errorText := fmt.Sprintf("%+v\n", e)
+	logPath := home + "/.config/timesheet/log.txt"
 
-	if err := ioutil.WriteFile(home+"/.config/log.txt", []byte(errorText), 0666); err != nil {
+	if err := ioutil.WriteFile(logPath, []byte(fmt.Sprintf("%+v\n", e)), 0666); err != nil {
 		panic(err)
 	}
 }
