@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/getlantern/systray"
 	"github.com/MakotoE/timesheet"
+	"github.com/getlantern/systray"
 )
 
 func main() {
@@ -15,12 +15,13 @@ func onReady() {
 	stopItem := systray.AddMenuItem("Stop", "Stop timer")
 	exitItem := systray.AddMenuItem("Exit", "")
 
-	loop: for {
+loop:
+	for {
 		select {
-		case startItem.ClickedCh:
+		case <-startItem.ClickedCh:
 			timesheet.Start()
-		case stopItem.ClickedCh:
-		case exitItem.ClickedCh:
+		case <-stopItem.ClickedCh:
+		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
 		}
