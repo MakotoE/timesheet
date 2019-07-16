@@ -21,6 +21,7 @@ loop:
 		case <-startItem.ClickedCh:
 			timesheet.Start()
 		case <-stopItem.ClickedCh:
+			timesheet.AppendEntry()
 		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
