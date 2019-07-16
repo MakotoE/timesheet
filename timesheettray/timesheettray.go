@@ -16,9 +16,6 @@ func main() {
 
 func onReady() {
 	systray.SetTooltip("timesheet")
-	startItem := systray.AddMenuItem("Start", "Start timer")
-	stopItem := systray.AddMenuItem("Stop", "Stop timer")
-	exitItem := systray.AddMenuItem("Exit", "")
 
 	executablePath, err := os.Executable()
 	if err != nil {
@@ -38,6 +35,10 @@ func onReady() {
 		logErr(err)
 		systray.Quit()
 	}
+
+	startItem := systray.AddMenuItem("Start", "Start timer")
+	stopItem := systray.AddMenuItem("Stop", "Stop timer")
+	exitItem := systray.AddMenuItem("Exit", "")
 
 loop:
 	for {
