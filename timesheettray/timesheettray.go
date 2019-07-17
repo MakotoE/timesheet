@@ -15,36 +15,6 @@ func main() {
 }
 
 func onReady() {
-	executablePath, err := os.Executable()
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	iconDir := filepath.Dir(executablePath) + "/timesheettrayIcons"
-	pauseIcon, err := ioutil.ReadFile(iconDir + "/pause.ico")
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	playIcon, err := ioutil.ReadFile(iconDir + "/play.ico")
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	started, err := timesheet.Started()
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	if started {
-		systray.SetIcon(playIcon)
-	} else {
-		systray.SetIcon(pauseIcon)
-	}
 	systray.SetTooltip("timesheet")
 
 	startItem := systray.AddMenuItem("Start", "Start timer")
@@ -60,19 +30,48 @@ loop:
 				break loop
 			}
 
-			systray.SetIcon(playIcon)
+			//systray.SetIcon(playIcon)
 		case <-stopItem.ClickedCh:
 			if err := timesheet.Stop(); err != nil {
 				logErr(err)
 				break loop
 			}
 
-			systray.SetIcon(pauseIcon)
+			//systray.SetIcon(pauseIcon)
 		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
 		}
 	}
+}
+
+func updateIcon() error {
+	executablePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	iconDir := filepath.Dir(executablePath) + "/timesheettrayIcons"
+
+	started, err := timesheet.Started()
+	if err != nil {
+		return err
+		// logErr(err)
+		// systray.Quit()
+	}
+
+	iconMap := map[bool]string{
+		false: "play.ico",
+		true:  "pause.ico",
+	}
+
+	iconBytes, err := ioutil.ReadFile(iconDir + "/" + iconMap[started])
+	if err != nil {
+		return err
+	}
+
+	systray.SetIcon(iconBytes)
+	return nil
 }
 
 func logErr(e error) {
