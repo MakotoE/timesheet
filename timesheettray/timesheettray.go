@@ -44,6 +44,7 @@ func onReady() {
 		return
 	}
 
+	// Watching the data file allows command line usage while the tray app is still running.
 	if err := watcher.Add(home + "/.config/timesheet/data.json"); err != nil {
 		logErr(errors.WithStack(err))
 		systray.Quit()
@@ -68,11 +69,13 @@ loop:
 		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
-		case <-watcher.Events: // TODO only activate on Write event
-			if err := updateIcon(); err != nil {
-				logErr(err)
-				systray.Quit()
-				break loop
+		case event := <-watcher.Events:
+			if event.Op == fsnotify.Write {
+				if err := updateIcon(); err != nil {
+					logErr(err)
+					systray.Quit()
+					break loop
+				}
 			}
 		case err := <-watcher.Errors:
 			logErr(errors.WithStack(err))
