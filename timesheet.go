@@ -173,22 +173,15 @@ func (t *table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
-	stat, err := t.File.Stat()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	tablePath := stat.Name()
-
 	t.File.Close()
 	t.File = nil
 
 	// Workaround for access denied error with file.Truncate() bug in Windows
-	if err := os.Truncate(tablePath, 0); err != nil {
+	if err := os.Truncate(t.path, 0); err != nil {
 		return errors.WithStack(err)
 	}
 
-	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(t.path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return errors.WithStack(err)
 	}
