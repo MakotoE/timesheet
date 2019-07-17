@@ -9,6 +9,7 @@ import (
 	"github.com/MakotoE/timesheet"
 	"github.com/fsnotify/fsnotify"
 	"github.com/getlantern/systray"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func onReady() {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		logErr(err)
+		logErr(errors.WithStack(err))
 		systray.Quit()
 		return
 	}
@@ -38,13 +39,13 @@ func onReady() {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		logErr(err)
+		logErr(errors.WithStack(err))
 		systray.Quit()
 		return
 	}
 
 	if err := watcher.Add(home + "/.config/timesheet/data.json"); err != nil {
-		logErr(err)
+		logErr(errors.WithStack(err))
 		systray.Quit()
 		return
 	}
@@ -74,7 +75,7 @@ loop:
 				break loop
 			}
 		case err := <-watcher.Errors:
-			logErr(err)
+			logErr(errors.WithStack(err))
 			systray.Quit()
 			break loop
 		}
@@ -84,14 +85,14 @@ loop:
 func updateIcon() error {
 	executablePath, err := os.Executable()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	iconDir := filepath.Dir(executablePath) + "/timesheettrayIcons"
 
 	started, err := timesheet.Started()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	iconMap := map[bool]string{
@@ -101,7 +102,7 @@ func updateIcon() error {
 
 	iconBytes, err := ioutil.ReadFile(iconDir + "/" + iconMap[started])
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	systray.SetIcon(iconBytes)
@@ -111,12 +112,12 @@ func updateIcon() error {
 func logErr(e error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		panic(err)
+		panic(errors.WithStack(err))
 	}
 
 	logPath := home + "/.config/timesheet/log.txt"
 	// TODO add time and append to file
 	if err := ioutil.WriteFile(logPath, []byte(fmt.Sprintf("%+v\n", e)), 0666); err != nil {
-		panic(err)
+		panic(errors.WithStack(err))
 	}
 }
