@@ -15,8 +15,6 @@ func main() {
 }
 
 func onReady() {
-	systray.SetTooltip("timesheet")
-
 	executablePath, err := os.Executable()
 	if err != nil {
 		logErr(err)
@@ -35,6 +33,19 @@ func onReady() {
 		logErr(err)
 		systray.Quit()
 	}
+
+	started, err := timesheet.Started()
+	if err != nil {
+		logErr(err)
+		systray.Quit()
+	}
+
+	if started {
+		systray.SetIcon(playIcon)
+	} else {
+		systray.SetIcon(pauseIcon)
+	}
+	systray.SetTooltip("timesheet")
 
 	startItem := systray.AddMenuItem("Start", "Start timer")
 	stopItem := systray.AddMenuItem("Stop", "Stop timer")
