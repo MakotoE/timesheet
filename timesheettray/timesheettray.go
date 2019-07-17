@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/MakotoE/timesheet"
+	"github.com/fsnotify/fsnotify"
 	"github.com/getlantern/systray"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -15,41 +17,39 @@ func main() {
 }
 
 func onReady() {
-	executablePath, err := os.Executable()
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	iconDir := filepath.Dir(executablePath) + "/timesheettrayIcons"
-	pauseIcon, err := ioutil.ReadFile(iconDir + "/pause.ico")
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	playIcon, err := ioutil.ReadFile(iconDir + "/play.ico")
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	started, err := timesheet.Started()
-	if err != nil {
-		logErr(err)
-		systray.Quit()
-	}
-
-	if started {
-		systray.SetIcon(playIcon)
-	} else {
-		systray.SetIcon(pauseIcon)
-	}
 	systray.SetTooltip("timesheet")
 
 	startItem := systray.AddMenuItem("Start", "Start timer")
 	stopItem := systray.AddMenuItem("Stop", "Stop timer")
 	exitItem := systray.AddMenuItem("Exit", "")
+
+	if err := updateIcon(); err != nil {
+		logErr(err)
+		systray.Quit()
+		return
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logErr(errors.WithStack(err))
+		systray.Quit()
+		return
+	}
+	defer watcher.Close()
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		logErr(errors.WithStack(err))
+		systray.Quit()
+		return
+	}
+
+	// Watching the data file allows command line usage while the tray app is still running.
+	if err := watcher.Add(home + "/.config/timesheet/data.json"); err != nil {
+		logErr(errors.WithStack(err))
+		systray.Quit()
+		return
+	}
 
 loop:
 	for {
@@ -57,33 +57,70 @@ loop:
 		case <-startItem.ClickedCh:
 			if err := timesheet.Start(); err != nil {
 				logErr(err)
+				systray.Quit()
 				break loop
 			}
-
-			systray.SetIcon(playIcon)
 		case <-stopItem.ClickedCh:
 			if err := timesheet.Stop(); err != nil {
 				logErr(err)
+				systray.Quit()
 				break loop
 			}
-
-			systray.SetIcon(pauseIcon)
 		case <-exitItem.ClickedCh:
+			systray.Quit()
+			break loop
+		case event := <-watcher.Events:
+			if event.Op == fsnotify.Write {
+				if err := updateIcon(); err != nil {
+					logErr(err)
+					systray.Quit()
+					break loop
+				}
+			}
+		case err := <-watcher.Errors:
+			logErr(errors.WithStack(err))
 			systray.Quit()
 			break loop
 		}
 	}
 }
 
+func updateIcon() error {
+	executablePath, err := os.Executable()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	iconDir := filepath.Dir(executablePath) + "/timesheettrayIcons"
+
+	started, err := timesheet.Started()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	iconMap := map[bool]string{
+		false: "pause.ico",
+		true:  "play.ico",
+	}
+
+	iconBytes, err := ioutil.ReadFile(iconDir + "/" + iconMap[started])
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	systray.SetIcon(iconBytes)
+	return nil
+}
+
 func logErr(e error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		panic(err)
+		panic(errors.WithStack(err))
 	}
 
 	logPath := home + "/.config/timesheet/log.txt"
-
+	// TODO add time and append to file
 	if err := ioutil.WriteFile(logPath, []byte(fmt.Sprintf("%+v\n", e)), 0666); err != nil {
-		panic(err)
+		panic(errors.WithStack(err))
 	}
 }
