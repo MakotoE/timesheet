@@ -12,6 +12,8 @@ require (
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f // indirect
 	github.com/getlantern/systray v0.0.0-20190626064521-f2fa635d0474
 	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
+	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
 )
 
 replace github.com/MakotoE/timesheet => ../../timesheet
