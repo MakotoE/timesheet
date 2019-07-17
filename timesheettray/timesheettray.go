@@ -58,16 +58,12 @@ loop:
 				systray.Quit()
 				break loop
 			}
-
-			//systray.SetIcon(playIcon)
 		case <-stopItem.ClickedCh:
 			if err := timesheet.Stop(); err != nil {
 				logErr(err)
 				systray.Quit()
 				break loop
 			}
-
-			//systray.SetIcon(pauseIcon)
 		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
