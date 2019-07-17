@@ -99,8 +99,8 @@ func updateIcon() error {
 	}
 
 	iconMap := map[bool]string{
-		false: "play.ico",
-		true:  "pause.ico",
+		false: "pause.ico",
+		true:  "play.ico",
 	}
 
 	iconBytes, err := ioutil.ReadFile(iconDir + "/" + iconMap[started])
