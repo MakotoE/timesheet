@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Verbose output.
 var Verbose bool
 
 var dataPath string
@@ -26,7 +27,6 @@ func init() {
 	dataPath = home + "/.config/timesheet/data.json"
 }
 
-// Data .
 type data struct {
 	Started   bool
 	StartTime time.Time
@@ -91,6 +91,16 @@ func dataDir() string {
 	}
 
 	return dataPath[:index]
+}
+
+// Started returns true if timer is running.
+func Started() (bool, error) {
+	data, err := readData()
+	if err != nil {
+		return false, err
+	}
+
+	return data.Started, nil
 }
 
 // PrintElapsedTime prints the duration since start time.
@@ -163,22 +173,15 @@ func (t *table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
-	stat, err := t.File.Stat()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	tablePath := stat.Name()
-
 	t.File.Close()
 	t.File = nil
 
-	// Workaround for access denied error with file.Truncate() bug in Windows
-	if err := os.Truncate(tablePath, 0); err != nil {
+	// Workaround for file.Truncate() access denied error in Windows
+	if err := os.Truncate(t.path, 0); err != nil {
 		return errors.WithStack(err)
 	}
 
-	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(t.path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -208,9 +211,9 @@ func Start() error {
 	return d.write()
 }
 
-// AppendEntry clears start time from data file, erases last entry from table if last entry was made
+// Stop clears start time from data file, erases last entry from table if last entry was made
 // on the same day, and appends duration since start time to table.
-func AppendEntry() error {
+func Stop() error {
 	d, err := readData()
 	if err != nil {
 		return err

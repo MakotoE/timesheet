@@ -24,7 +24,7 @@ func runCommand(command string) error {
 	case "start":
 		return timesheet.Start()
 	case "stop":
-		return timesheet.AppendEntry()
+		return timesheet.Stop()
 	case "setTablePath":
 		return timesheet.SetTablePath()
 	}
