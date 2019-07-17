@@ -93,6 +93,16 @@ func dataDir() string {
 	return dataPath[:index]
 }
 
+// Started returns true if timer is running.
+func Started() (bool, error) {
+	data, err := readData()
+	if err != nil {
+		return false, err
+	}
+
+	return data.Started, nil
+}
+
 // PrintElapsedTime prints the duration since start time.
 func PrintElapsedTime() error {
 	d, err := readData()
