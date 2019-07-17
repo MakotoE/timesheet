@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/MakotoE/timesheet"
+	"github.com/fsnotify/fsnotify"
 	"github.com/getlantern/systray"
 )
 
@@ -21,12 +22,40 @@ func onReady() {
 	stopItem := systray.AddMenuItem("Stop", "Stop timer")
 	exitItem := systray.AddMenuItem("Exit", "")
 
+	if err := updateIcon(); err != nil {
+		logErr(err)
+		systray.Quit()
+		return
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logErr(err)
+		systray.Quit()
+		return
+	}
+	defer watcher.Close()
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		logErr(err)
+		systray.Quit()
+		return
+	}
+
+	if err := watcher.Add(home + "/.config/timesheet/data.json"); err != nil {
+		logErr(err)
+		systray.Quit()
+		return
+	}
+
 loop:
 	for {
 		select {
 		case <-startItem.ClickedCh:
 			if err := timesheet.Start(); err != nil {
 				logErr(err)
+				systray.Quit()
 				break loop
 			}
 
@@ -34,11 +63,22 @@ loop:
 		case <-stopItem.ClickedCh:
 			if err := timesheet.Stop(); err != nil {
 				logErr(err)
+				systray.Quit()
 				break loop
 			}
 
 			//systray.SetIcon(pauseIcon)
 		case <-exitItem.ClickedCh:
+			systray.Quit()
+			break loop
+		case <-watcher.Events: // TODO only activate on Write event
+			if err := updateIcon(); err != nil {
+				logErr(err)
+				systray.Quit()
+				break loop
+			}
+		case err := <-watcher.Errors:
+			logErr(err)
 			systray.Quit()
 			break loop
 		}
@@ -56,8 +96,6 @@ func updateIcon() error {
 	started, err := timesheet.Started()
 	if err != nil {
 		return err
-		// logErr(err)
-		// systray.Quit()
 	}
 
 	iconMap := map[bool]string{
@@ -81,7 +119,7 @@ func logErr(e error) {
 	}
 
 	logPath := home + "/.config/timesheet/log.txt"
-
+	// TODO add time and append to file
 	if err := ioutil.WriteFile(logPath, []byte(fmt.Sprintf("%+v\n", e)), 0666); err != nil {
 		panic(err)
 	}
