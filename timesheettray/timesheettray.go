@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/MakotoE/timesheet"
 	"github.com/fsnotify/fsnotify"
@@ -118,9 +119,12 @@ func logErr(e error) {
 		panic(errors.WithStack(err))
 	}
 
-	logPath := home + "/.config/timesheet/log.txt"
-	// TODO add time and append to file
-	if err := ioutil.WriteFile(logPath, []byte(fmt.Sprintf("%+v\n", e)), 0666); err != nil {
+	file, err := os.OpenFile(home+"/.config/timesheet/log.txt", os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
+	if _, err := file.WriteString(fmt.Sprintf("%s\n%+v\n\n", time.Now(), e)); err != nil {
 		panic(errors.WithStack(err))
 	}
 }
