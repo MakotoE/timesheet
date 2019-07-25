@@ -150,7 +150,7 @@ func (t *table) readAll() ([][]string, error) {
 }
 
 func (t *table) appendEntry(duration time.Duration) error {
-	currentTime, err := time.Now().Truncate(time.Hour * 24).MarshalText()
+	currentTime, err := time.Now().Truncate(time.Hour * (24 + 12)).MarshalText()
 	if err != nil {
 		return errors.WithStack(err)
 	}
