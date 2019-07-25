@@ -1,4 +1,4 @@
-package timesheet
+package main
 
 import (
 	"flag"
