@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -136,19 +135,6 @@ func openTable(tablePath string) (*table, error) {
 	return &table{file, tablePath}, nil
 }
 
-func (t *table) readAll() ([][]string, error) {
-	if _, err := t.File.Seek(0, io.SeekStart); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	if Verbose {
-		fmt.Println("reading", t.path)
-	}
-
-	records, err := csv.NewReader(t.File).ReadAll()
-	return records, errors.WithStack(err)
-}
-
 func (t *table) appendEntry(duration time.Duration) error {
 	currentTime, err := time.Now().Truncate(time.Hour * (24 - 12)).MarshalText()
 	if err != nil {
@@ -167,38 +153,6 @@ func (t *table) appendEntry(duration time.Duration) error {
 	return nil
 }
 
-func (t *table) deleteLastEntry() error {
-	records, err := t.readAll()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	// Workaround for file.Truncate() access denied error in Windows
-	t.File.Close()
-	t.File = nil
-
-	if err := os.Truncate(t.path, 0); err != nil {
-		return errors.WithStack(err)
-	}
-
-	file, err := os.OpenFile(t.path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	t.File = file
-
-	if err := csv.NewWriter(t.File).WriteAll(records[:len(records)-1]); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if Verbose {
-		fmt.Println("deleted last entry")
-	}
-
-	return nil
-}
-
 // Start writes start time to data file.
 func Start() error {
 	d, err := readData()
@@ -211,8 +165,7 @@ func Start() error {
 	return d.write()
 }
 
-// Stop clears start time from data file, erases last entry from table if last entry was made
-// on the same day, and appends duration since start time to table.
+// Stop clears start time from data file and appends duration since start time to table.
 func Stop() error {
 	d, err := readData()
 	if err != nil {
@@ -235,46 +188,8 @@ func Stop() error {
 	}
 	defer table.Close()
 
-	records, err := table.readAll()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if len(records) == 0 {
-		if Verbose {
-			fmt.Println("0 records in table")
-		}
-
-		return table.appendEntry(time.Since(d.StartTime))
-	}
-
-	lastRecordedDate := time.Time{}
-	if err := lastRecordedDate.UnmarshalText([]byte(records[len(records)-1][0])); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if Verbose {
-		fmt.Println("last entry:", records[len(records)-1])
-	}
-
-	if time.Since(lastRecordedDate) > time.Hour*24 {
-		if err := table.appendEntry(time.Since(d.StartTime)); err != nil {
-			return err
-		}
-	} else {
-		recordedDuration, err := time.ParseDuration(records[len(records)-1][1])
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		if err := table.deleteLastEntry(); err != nil {
-			return err
-		}
-
-		sumDuration := recordedDuration + time.Since(d.StartTime)
-		if err := table.appendEntry(sumDuration); err != nil {
-			return err
-		}
+	if err := table.appendEntry(time.Since(d.StartTime)); err != nil {
+		return err
 	}
 
 	d.Started = false
