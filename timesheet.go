@@ -173,10 +173,10 @@ func (t *table) deleteLastEntry() error {
 		return errors.WithStack(err)
 	}
 
+	// Workaround for file.Truncate() access denied error in Windows
 	t.File.Close()
 	t.File = nil
 
-	// Workaround for file.Truncate() access denied error in Windows
 	if err := os.Truncate(t.path, 0); err != nil {
 		return errors.WithStack(err)
 	}
