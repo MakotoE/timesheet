@@ -182,14 +182,24 @@ func Stop() error {
 		return nil
 	}
 
-	table, err := openTable(d.TablePath)
+	tableFile, err := os.OpenFile(d.TablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
-	defer table.Close()
+	defer tableFile.Close()
 
-	if err := table.appendEntry(time.Since(d.StartTime)); err != nil {
-		return err
+	currentTime, err := time.Now().MarshalText()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	newRecord := []string{string(currentTime), time.Since(d.StartTime).String()}
+	if err := csv.NewWriter(tableFile).WriteAll([][]string{newRecord}); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if Verbose {
+		fmt.Println("added new entry:", newRecord)
 	}
 
 	d.Started = false
