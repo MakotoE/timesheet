@@ -182,7 +182,7 @@ func Stop() error {
 		return nil
 	}
 
-	tableFile, err := os.OpenFile(d.TablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	tableFile, err := os.OpenFile(d.TablePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return errors.WithStack(err)
 	}
