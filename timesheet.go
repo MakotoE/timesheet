@@ -220,3 +220,66 @@ func SetTablePath() error {
 	d.TablePath = flag.Arg(1)
 	return d.write()
 }
+
+func Info() error {
+	d, err := readData()
+	if err != nil {
+		return err
+	}
+
+	if d.TablePath == "" {
+		fmt.Fprintln(os.Stderr, "TablePath not set")
+		return nil
+	}
+
+	tableFile, err := os.OpenFile(d.TablePath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer tableFile.Close()
+
+	records, err := csv.NewReader(tableFile).ReadAll()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	type entry struct {
+		date     time.Time
+		duration time.Duration
+	}
+
+	type week struct {
+		weekOf  int // nth week from first Monday
+		entries []entry
+	}
+
+	entries := make([]entry, len(records))
+
+	for i, record := range records {
+		if err := entries[i].date.UnmarshalText([]byte(record[0])); err != nil {
+			return errors.WithStack(err)
+		}
+
+		duration, err := time.ParseDuration(record[1])
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		entries[i].duration = duration
+	}
+
+	if len(entries) == 0 {
+		return nil
+	}
+
+	date0 := entries[0].date
+	firstMondayDate := time.Date(date0.Year(), date0.Month(), date0.Day(), 0, 0, 0, 0, date0.Location())
+	mondayDifference := time.Duration(int(time.Hour) * 24 * int(firstMondayDate.Weekday()))
+	firstMondayDate = firstMondayDate.Add(-1 * mondayDifference)
+
+	weeks := make([]week, 1)
+
+	for _, entry := range entries {
+
+	}
+}
