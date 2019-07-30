@@ -248,11 +248,6 @@ func Info() error {
 		duration time.Duration
 	}
 
-	type week struct {
-		weekOf  int // nth week from first Monday
-		entries []entry
-	}
-
 	entries := make([]entry, len(records))
 
 	for i, record := range records {
@@ -277,9 +272,19 @@ func Info() error {
 	mondayDifference := time.Duration(int(time.Hour) * 24 * int(firstMondayDate.Weekday()))
 	firstMondayDate = firstMondayDate.Add(-1 * mondayDifference)
 
+	type week []entry
 	weeks := make([]week, 1)
 
 	for _, entry := range entries {
-
+		nextMondayDiff := time.Duration(int(time.Hour) * 24 * 7 * (len(weeks) - 1))
+		nextMonday := firstMondayDate.Add(nextMondayDiff)
+		if entry.date.After(nextMonday) {
+			weeks = append(weeks, week{entry})
+		} else {
+			weeks[len(weeks)-1] = append(weeks[len(weeks)-1], entry)
+		}
 	}
+
+	fmt.Println(weeks)
+	return nil
 }
