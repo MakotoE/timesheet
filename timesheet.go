@@ -285,6 +285,24 @@ func Info() error {
 		}
 	}
 
-	fmt.Println(weeks)
+	var outputEntries [][]string
+	for _, week := range weeks {
+		sumDuration := time.Duration(0)
+
+		for _, entry := range week {
+			sumDuration += entry.duration
+			outputEntry := []string{entry.date.String(), entry.duration.String()}
+			outputEntries = append(outputEntries, outputEntry)
+		}
+
+		if len(outputEntries) > 0 {
+			outputEntries[len(outputEntries)-1] = append(outputEntries[len(outputEntries)-1], sumDuration.String())
+		}
+	}
+
+	if err := csv.NewWriter(os.Stdout).WriteAll(outputEntries); err != nil {
+		return errors.WithStack(err)
+	}
+
 	return nil
 }
