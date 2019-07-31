@@ -267,40 +267,47 @@ func Info() error {
 		return nil
 	}
 
-	date0 := entries[0].date
-	firstMondayDate := time.Date(date0.Year(), date0.Month(), date0.Day(), 0, 0, 0, 0, date0.Location())
-	mondayDifference := time.Duration(int(time.Hour) * 24 * int(firstMondayDate.Weekday()))
-	firstMondayDate = firstMondayDate.Add(-1 * mondayDifference)
-
-	type week []entry
-	weeks := make([]week, 1)
+	firstLastDiff := entries[len(entries)-1].date.Sub(entries[0].date)
+	days := int(firstLastDiff.Hours()/24 + 0.5) // round up to include last day
+	dailyDurations := make([]time.Duration, days)
 
 	for _, entry := range entries {
-		nextMondayDiff := time.Duration(int(time.Hour) * 24 * 7 * (len(weeks) - 1))
-		nextMonday := firstMondayDate.Add(nextMondayDiff)
-		if entry.date.After(nextMonday) {
-			weeks = append(weeks, week{entry})
-		} else {
-			weeks[len(weeks)-1] = append(weeks[len(weeks)-1], entry)
+		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
+		dailyDurations[day] += entry.duration
+	}
+
+	// var firstMondayIndex int
+	// for i, entry := range entries {
+	// 	if entry.date.Weekday() == time.Monday {
+	// 		firstMondayIndex = i
+	// 	}
+	// }
+
+	outputTable := make([][]string, len(dailyDurations))
+	for i := range dailyDurations {
+		outputTable[i] = make([]string, 2)
+		outputTable[i][0] = dailyDurations[i].String()
+	}
+
+	for i := range dailyDurations {
+		if i%7 == 0 { // TODO start from first monday
+			var startFrom int
+			if i < 7 {
+				startFrom = 0
+			} else {
+				startFrom = i - 7
+			}
+
+			weeklyTotal := time.Duration(0)
+			for day := startFrom; day < i; day++ {
+				weeklyTotal += dailyDurations[day]
+			}
+
+			outputTable[i][1] = weeklyTotal.String()
 		}
 	}
 
-	var outputEntries [][]string
-	for _, week := range weeks {
-		sumDuration := time.Duration(0)
-
-		for _, entry := range week {
-			sumDuration += entry.duration
-			outputEntry := []string{entry.date.String(), entry.duration.String()}
-			outputEntries = append(outputEntries, outputEntry)
-		}
-
-		if len(outputEntries) > 0 {
-			outputEntries[len(outputEntries)-1] = append(outputEntries[len(outputEntries)-1], sumDuration.String())
-		}
-	}
-
-	if err := csv.NewWriter(os.Stdout).WriteAll(outputEntries); err != nil {
+	if err := csv.NewWriter(os.Stdout).WriteAll(outputTable); err != nil {
 		return errors.WithStack(err)
 	}
 
