@@ -276,17 +276,11 @@ func Info() error {
 		dailyDurations[day] += entry.duration
 	}
 
-	// var firstMondayIndex int
-	// for i, entry := range entries {
-	// 	if entry.date.Weekday() == time.Monday {
-	// 		firstMondayIndex = i
-	// 	}
-	// }
-
 	outputTable := make([][]string, len(dailyDurations))
 	for i := range dailyDurations {
-		outputTable[i] = make([]string, 2)
-		outputTable[i][0] = dailyDurations[i].String()
+		outputTable[i] = make([]string, 3)
+		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
+		outputTable[i][1] = dailyDurations[i].String()
 	}
 
 	var shiftNDays int
@@ -302,15 +296,15 @@ func Info() error {
 			if i < 7 {
 				startFrom = 0
 			} else {
-				startFrom = i - 7
+				startFrom = i - 6
 			}
 
 			weeklyTotal := time.Duration(0)
-			for day := startFrom; day < i; day++ {
+			for day := startFrom; day < i+1; day++ {
 				weeklyTotal += dailyDurations[day]
 			}
 
-			outputTable[i][1] = weeklyTotal.String()
+			outputTable[i][2] = weeklyTotal.String()
 		}
 	}
 
