@@ -221,6 +221,8 @@ func SetTablePath() error {
 	return d.write()
 }
 
+// Info prints a csv table of daily durations where the columns are: date, duration worked, weekly
+// total.
 func Info() error {
 	d, err := readData()
 	if err != nil {
