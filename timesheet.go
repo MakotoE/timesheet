@@ -289,8 +289,15 @@ func Info() error {
 		outputTable[i][0] = dailyDurations[i].String()
 	}
 
+	var shiftNDays int
+	if entries[0].date.Weekday() == time.Sunday {
+		shiftNDays = 0
+	} else {
+		shiftNDays = int(7 - entries[0].date.Weekday())
+	}
+
 	for i := range dailyDurations {
-		if i%7 == 0 { // TODO start from first monday
+		if i%7 == shiftNDays {
 			var startFrom int
 			if i < 7 {
 				startFrom = 0
