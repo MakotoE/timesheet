@@ -175,7 +175,7 @@ func Table() error {
 
 	for _, entry := range entries {
 		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
-		dailyDurations[day] += entry.duration
+		dailyDurations[day] += entry.duration // TODO out of range error; dailyDurations needs one more element
 	}
 
 	outputTable := make([][]string, len(dailyDurations))
