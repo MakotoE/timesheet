@@ -19,8 +19,8 @@ func main() {
 
 func runCommand(command string) error {
 	switch command {
-	case "elapsed":
-		return timesheet.PrintElapsedTime()
+	case "status":
+		return timesheet.Status()
 	case "info":
 		return timesheet.Info()
 	case "start":

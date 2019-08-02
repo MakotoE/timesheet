@@ -92,8 +92,8 @@ func dataDir() string {
 	return dataPath[:index]
 }
 
-// PrintElapsedTime prints the duration since start time.
-func PrintElapsedTime() error {
+// Status prints the duration since start time.
+func Status() error {
 	d, err := readData()
 	if err != nil {
 		return err
@@ -104,9 +104,9 @@ func PrintElapsedTime() error {
 	}
 
 	if d.Started {
-		fmt.Println(time.Since(d.StartTime))
+		fmt.Printf("Elapsed time: %s", time.Since(d.StartTime))
 	} else {
-		fmt.Fprintln(os.Stderr, "timer not started")
+		fmt.Printf("Not started")
 	}
 	return nil
 }
