@@ -121,9 +121,9 @@ func Status() error {
 	return nil
 }
 
-// Info prints a csv table of daily durations where the columns are: date, duration worked, weekly
+// Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
 // total.
-func Info() error {
+func Table() error {
 	d, err := readData()
 	if err != nil {
 		return err

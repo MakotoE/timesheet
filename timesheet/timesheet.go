@@ -21,8 +21,8 @@ func runCommand(command string) error {
 	switch command {
 	case "status":
 		return timesheet.Status()
-	case "info":
-		return timesheet.Info()
+	case "table":
+		return timesheet.Table()
 	case "start":
 		return timesheet.Start()
 	case "stop":
