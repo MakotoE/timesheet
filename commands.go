@@ -92,16 +92,6 @@ func dataDir() string {
 	return dataPath[:index]
 }
 
-// Started returns true if timer is running.
-func Started() (bool, error) {
-	data, err := readData()
-	if err != nil {
-		return false, err
-	}
-
-	return data.Started, nil
-}
-
 // PrintElapsedTime prints the duration since start time.
 func PrintElapsedTime() error {
 	d, err := readData()
@@ -118,6 +108,102 @@ func PrintElapsedTime() error {
 	} else {
 		fmt.Fprintln(os.Stderr, "timer not started")
 	}
+	return nil
+}
+
+// Info prints a csv table of daily durations where the columns are: date, duration worked, weekly
+// total.
+func Info() error {
+	d, err := readData()
+	if err != nil {
+		return err
+	}
+
+	if d.TablePath == "" {
+		fmt.Fprintln(os.Stderr, "TablePath not set")
+		return nil
+	}
+
+	tableFile, err := os.OpenFile(d.TablePath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer tableFile.Close()
+
+	records, err := csv.NewReader(tableFile).ReadAll()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	type entry struct {
+		date     time.Time
+		duration time.Duration
+	}
+
+	entries := make([]entry, len(records))
+
+	for i, record := range records {
+		if err := entries[i].date.UnmarshalText([]byte(record[0])); err != nil {
+			return errors.WithStack(err)
+		}
+
+		duration, err := time.ParseDuration(record[1])
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		entries[i].duration = duration
+	}
+
+	if len(entries) == 0 {
+		return nil
+	}
+
+	firstLastDiff := entries[len(entries)-1].date.Sub(entries[0].date)
+	days := int(firstLastDiff.Hours()/24 + 0.5) // round up to include last day
+	dailyDurations := make([]time.Duration, days)
+
+	for _, entry := range entries {
+		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
+		dailyDurations[day] += entry.duration
+	}
+
+	outputTable := make([][]string, len(dailyDurations))
+	for i := range dailyDurations {
+		outputTable[i] = make([]string, 3)
+		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
+		outputTable[i][1] = dailyDurations[i].String()
+	}
+
+	var shiftNDays int
+	if entries[0].date.Weekday() == time.Sunday {
+		shiftNDays = 0
+	} else {
+		shiftNDays = int(7 - entries[0].date.Weekday())
+	}
+
+	for i := range dailyDurations {
+		if i%7 == shiftNDays {
+			var startFrom int
+			if i < 7 {
+				startFrom = 0
+			} else {
+				startFrom = i - 6
+			}
+
+			weeklyTotal := time.Duration(0)
+			for day := startFrom; day < i+1; day++ {
+				weeklyTotal += dailyDurations[day]
+			}
+
+			outputTable[i][2] = weeklyTotal.String()
+		}
+	}
+
+	if err := csv.NewWriter(os.Stdout).WriteAll(outputTable); err != nil {
+		return errors.WithStack(err)
+	}
+
 	return nil
 }
 
@@ -219,100 +305,4 @@ func SetTablePath() error {
 
 	d.TablePath = flag.Arg(1)
 	return d.write()
-}
-
-// Info prints a csv table of daily durations where the columns are: date, duration worked, weekly
-// total.
-func Info() error {
-	d, err := readData()
-	if err != nil {
-		return err
-	}
-
-	if d.TablePath == "" {
-		fmt.Fprintln(os.Stderr, "TablePath not set")
-		return nil
-	}
-
-	tableFile, err := os.OpenFile(d.TablePath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	defer tableFile.Close()
-
-	records, err := csv.NewReader(tableFile).ReadAll()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	type entry struct {
-		date     time.Time
-		duration time.Duration
-	}
-
-	entries := make([]entry, len(records))
-
-	for i, record := range records {
-		if err := entries[i].date.UnmarshalText([]byte(record[0])); err != nil {
-			return errors.WithStack(err)
-		}
-
-		duration, err := time.ParseDuration(record[1])
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		entries[i].duration = duration
-	}
-
-	if len(entries) == 0 {
-		return nil
-	}
-
-	firstLastDiff := entries[len(entries)-1].date.Sub(entries[0].date)
-	days := int(firstLastDiff.Hours()/24 + 0.5) // round up to include last day
-	dailyDurations := make([]time.Duration, days)
-
-	for _, entry := range entries {
-		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
-		dailyDurations[day] += entry.duration
-	}
-
-	outputTable := make([][]string, len(dailyDurations))
-	for i := range dailyDurations {
-		outputTable[i] = make([]string, 3)
-		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
-		outputTable[i][1] = dailyDurations[i].String()
-	}
-
-	var shiftNDays int
-	if entries[0].date.Weekday() == time.Sunday {
-		shiftNDays = 0
-	} else {
-		shiftNDays = int(7 - entries[0].date.Weekday())
-	}
-
-	for i := range dailyDurations {
-		if i%7 == shiftNDays {
-			var startFrom int
-			if i < 7 {
-				startFrom = 0
-			} else {
-				startFrom = i - 6
-			}
-
-			weeklyTotal := time.Duration(0)
-			for day := startFrom; day < i+1; day++ {
-				weeklyTotal += dailyDurations[day]
-			}
-
-			outputTable[i][2] = weeklyTotal.String()
-		}
-	}
-
-	if err := csv.NewWriter(os.Stdout).WriteAll(outputTable); err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
 }
