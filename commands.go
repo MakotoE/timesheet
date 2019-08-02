@@ -32,6 +32,16 @@ type data struct {
 	LogPath   string
 }
 
+// Started returns true if timer is running. (Helper for timesheettray.go)
+func Started() (bool, error) {
+	data, err := readData()
+	if err != nil {
+		return false, err
+	}
+
+	return data.Started, nil
+}
+
 func readData() (*data, error) {
 	if Verbose {
 		fmt.Println("reading", dataPath)
