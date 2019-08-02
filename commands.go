@@ -29,7 +29,7 @@ func init() {
 type data struct {
 	Started   bool
 	StartTime time.Time
-	TablePath string
+	LogPath   string
 }
 
 func readData() (*data, error) {
@@ -119,18 +119,18 @@ func Info() error {
 		return err
 	}
 
-	if d.TablePath == "" {
-		fmt.Fprintln(os.Stderr, "TablePath not set")
+	if d.LogPath == "" {
+		fmt.Fprintln(os.Stderr, "LogPath not set")
 		return nil
 	}
 
-	tableFile, err := os.OpenFile(d.TablePath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(d.LogPath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	defer tableFile.Close()
+	defer logFile.Close()
 
-	records, err := csv.NewReader(tableFile).ReadAll()
+	records, err := csv.NewReader(logFile).ReadAll()
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -207,21 +207,21 @@ func Info() error {
 	return nil
 }
 
-type table struct {
+type log struct {
 	*os.File
 	path string
 }
 
-func openTable(tablePath string) (*table, error) {
-	file, err := os.OpenFile(tablePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+func openLog(logPath string) (*log, error) {
+	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return &table{file, tablePath}, nil
+	return &log{file, logPath}, nil
 }
 
-func (t *table) appendEntry(duration time.Duration) error {
+func (t *log) appendEntry(duration time.Duration) error {
 	currentTime, err := time.Now().MarshalText()
 	if err != nil {
 		return errors.WithStack(err)
@@ -251,7 +251,7 @@ func Start() error {
 	return d.write()
 }
 
-// Stop clears start time from data file and appends duration since start time to table.
+// Stop clears start time from data file and appends duration since start time to log.
 func Stop() error {
 	d, err := readData()
 	if err != nil {
@@ -263,16 +263,16 @@ func Stop() error {
 		return nil
 	}
 
-	if d.TablePath == "" {
-		fmt.Fprintln(os.Stderr, "TablePath not set")
+	if d.LogPath == "" {
+		fmt.Fprintln(os.Stderr, "LogPath not set")
 		return nil
 	}
 
-	tableFile, err := os.OpenFile(d.TablePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(d.LogPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	defer tableFile.Close()
+	defer logFile.Close()
 
 	currentTime, err := time.Now().MarshalText()
 	if err != nil {
@@ -280,7 +280,7 @@ func Stop() error {
 	}
 
 	newRecord := []string{string(currentTime), time.Since(d.StartTime).String()}
-	if err := csv.NewWriter(tableFile).WriteAll([][]string{newRecord}); err != nil {
+	if err := csv.NewWriter(logFile).WriteAll([][]string{newRecord}); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -296,13 +296,13 @@ func Stop() error {
 	return nil
 }
 
-// SetTablePath writes argument 1 to TablePath entry in data file.
-func SetTablePath() error {
+// SetLogPath changes LogPath entry in data file to argument 1.
+func SetLogPath() error {
 	d, err := readData()
 	if err != nil {
 		return err
 	}
 
-	d.TablePath = flag.Arg(1)
+	d.LogPath = flag.Arg(1)
 	return d.write()
 }

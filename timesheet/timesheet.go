@@ -27,8 +27,8 @@ func runCommand(command string) error {
 		return timesheet.Start()
 	case "stop":
 		return timesheet.Stop()
-	case "setTablePath":
-		return timesheet.SetTablePath()
+	case "setLogPath":
+		return timesheet.SetLogPath()
 	}
 
 	flag.PrintDefaults()
