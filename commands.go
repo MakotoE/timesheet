@@ -114,9 +114,9 @@ func Status() error {
 	}
 
 	if d.Started {
-		fmt.Printf("Elapsed time: %s", time.Since(d.StartTime))
+		fmt.Printf("Elapsed time: %s\n", time.Since(d.StartTime))
 	} else {
-		fmt.Printf("Not started")
+		fmt.Println("Not started")
 	}
 	return nil
 }
