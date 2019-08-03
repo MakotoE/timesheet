@@ -200,7 +200,7 @@ func Table() error {
 		}
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.DiscardEmptyColumns)
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
 	csvWriter := csv.NewWriter(writer)
 	csvWriter.Comma = '\t'
 	if err := csvWriter.WriteAll(outputTable); err != nil {
