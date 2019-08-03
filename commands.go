@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/pkg/errors"
@@ -210,11 +211,14 @@ func Table() error {
 		}
 	}
 
-	if err := csv.NewWriter(os.Stdout).WriteAll(outputTable); err != nil {
+	writer := tabwriter.NewWriter(os.Stdout, 20, 0, 0, ' ', tabwriter.DiscardEmptyColumns)
+	csvWriter := csv.NewWriter(writer)
+	csvWriter.Comma = '\t'
+	if err := csvWriter.WriteAll(outputTable); err != nil {
 		return errors.WithStack(err)
 	}
 
-	return nil
+	return writer.Flush()
 }
 
 type log struct {
