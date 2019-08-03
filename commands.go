@@ -144,13 +144,7 @@ func Table() error {
 		return nil
 	}
 
-	logFile, err := openLog(d.LogPath)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	defer logFile.Close()
-
-	entries, err := logFile.readAll()
+	entries, err := readLog(d.LogPath)
 	if err != nil {
 		return err
 	}
@@ -210,32 +204,21 @@ func Table() error {
 	return errors.WithStack(writer.Flush())
 }
 
-type log struct {
-	*os.File
-}
-
-func openLog(logPath string) (*log, error) {
-	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return &log{file}, nil
-}
-
 type entry struct {
 	date     time.Time
 	duration time.Duration
 }
 
-func (l *log) readAll() ([]entry, error) {
-	if _, err := l.Seek(0, os.SEEK_SET); err != nil {
+func readLog(logPath string) ([]entry, error) {
+	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	defer file.Close()
 
 	var entries []entry
 
-	reader := csv.NewReader(l)
+	reader := csv.NewReader(file)
 	for {
 		record, err := reader.Read()
 		if err != nil {
@@ -261,13 +244,19 @@ func (l *log) readAll() ([]entry, error) {
 	}
 }
 
-func (l *log) appendEntry(duration time.Duration) error {
+func appendLogEntry(logPath string, duration time.Duration) error {
+	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer file.Close()
+
 	currentTime, err := time.Now().MarshalText()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	writer := csv.NewWriter(l)
+	writer := csv.NewWriter(file)
 	newRecord := []string{string(currentTime), duration.String()}
 	if err := writer.Write(newRecord); err != nil {
 		return errors.WithStack(err)
@@ -310,13 +299,7 @@ func Stop() error {
 		return nil
 	}
 
-	logFile, err := openLog(d.LogPath)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	defer logFile.Close()
-
-	if err := logFile.appendEntry(time.Since(d.StartTime)); err != nil {
+	if err := appendLogEntry(d.LogPath, time.Since(d.StartTime)); err != nil {
 		return err
 	}
 
