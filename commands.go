@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -243,15 +244,22 @@ type entry struct {
 }
 
 func (t *log) readAll() ([]entry, error) {
-	records, err := csv.NewReader(t).ReadAll()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+	reader := csv.NewReader(t)
 
-	entries := make([]entry, len(records))
+	var entries []entry
 
-	for i, record := range records {
-		if err := entries[i].date.UnmarshalText([]byte(record[0])); err != nil {
+	for {
+		record, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				return entries, nil
+			}
+			return nil, errors.WithStack(err)
+		}
+
+		newEntry := entry{}
+
+		if err := newEntry.date.UnmarshalText([]byte(record[0])); err != nil {
 			return nil, errors.WithStack(err)
 		}
 
@@ -260,10 +268,9 @@ func (t *log) readAll() ([]entry, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		entries[i].duration = duration
+		newEntry.duration = duration
+		entries = append(entries, newEntry)
 	}
-
-	return entries, nil
 }
 
 func (t *log) appendEntry(duration time.Duration) error {
