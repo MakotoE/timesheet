@@ -154,11 +154,6 @@ func Table() error {
 		return errors.WithStack(err)
 	}
 
-	type entry struct {
-		date     time.Time
-		duration time.Duration
-	}
-
 	entries := make([]entry, len(records))
 
 	for i, record := range records {
@@ -231,7 +226,6 @@ func Table() error {
 
 type log struct {
 	*os.File
-	path string
 }
 
 func openLog(logPath string) (*log, error) {
@@ -240,7 +234,36 @@ func openLog(logPath string) (*log, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	return &log{file, logPath}, nil
+	return &log{file}, nil
+}
+
+type entry struct {
+	date     time.Time
+	duration time.Duration
+}
+
+func (t *log) readAll() ([]entry, error) {
+	records, err := csv.NewReader(t).ReadAll()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	entries := make([]entry, len(records))
+
+	for i, record := range records {
+		if err := entries[i].date.UnmarshalText([]byte(record[0])); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		duration, err := time.ParseDuration(record[1])
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		entries[i].duration = duration
+	}
+
+	return entries, nil
 }
 
 func (t *log) appendEntry(duration time.Duration) error {
@@ -250,7 +273,7 @@ func (t *log) appendEntry(duration time.Duration) error {
 	}
 
 	newRecord := []string{string(currentTime), duration.String()}
-	if err := csv.NewWriter(t.File).WriteAll([][]string{newRecord}); err != nil {
+	if err := csv.NewWriter(t).WriteAll([][]string{newRecord}); err != nil {
 		return errors.WithStack(err)
 	}
 
