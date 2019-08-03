@@ -144,30 +144,15 @@ func Table() error {
 		return nil
 	}
 
-	logFile, err := os.OpenFile(d.LogPath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := openLog(d.LogPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	defer logFile.Close()
 
-	records, err := csv.NewReader(logFile).ReadAll()
+	entries, err := logFile.readAll()
 	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	entries := make([]entry, len(records))
-
-	for i, record := range records {
-		if err := entries[i].date.UnmarshalText([]byte(record[0])); err != nil {
-			return errors.WithStack(err)
-		}
-
-		duration, err := time.ParseDuration(record[1])
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		entries[i].duration = duration
+		return err
 	}
 
 	if len(entries) == 0 {
