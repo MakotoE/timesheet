@@ -228,11 +228,14 @@ type entry struct {
 	duration time.Duration
 }
 
-func (t *log) readAll() ([]entry, error) {
-	reader := csv.NewReader(t)
+func (l *log) readAll() ([]entry, error) {
+	if _, err := l.Seek(0, os.SEEK_SET); err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	var entries []entry
 
+	reader := csv.NewReader(l)
 	for {
 		record, err := reader.Read()
 		if err != nil {
@@ -258,14 +261,15 @@ func (t *log) readAll() ([]entry, error) {
 	}
 }
 
-func (t *log) appendEntry(duration time.Duration) error {
+func (l *log) appendEntry(duration time.Duration) error {
 	currentTime, err := time.Now().MarshalText()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
+	writer := csv.NewWriter(l)
 	newRecord := []string{string(currentTime), duration.String()}
-	if err := csv.NewWriter(t).WriteAll([][]string{newRecord}); err != nil {
+	if err := writer.Write(newRecord); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -273,6 +277,7 @@ func (t *log) appendEntry(duration time.Duration) error {
 		fmt.Println("added new entry:", newRecord)
 	}
 
+	writer.Flush()
 	return nil
 }
 
@@ -305,24 +310,14 @@ func Stop() error {
 		return nil
 	}
 
-	logFile, err := os.OpenFile(d.LogPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := openLog(d.LogPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	defer logFile.Close()
 
-	currentTime, err := time.Now().MarshalText()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	newRecord := []string{string(currentTime), time.Since(d.StartTime).String()}
-	if err := csv.NewWriter(logFile).WriteAll([][]string{newRecord}); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if Verbose {
-		fmt.Println("added new entry:", newRecord)
+	if err := logFile.appendEntry(time.Since(d.StartTime)); err != nil {
+		return err
 	}
 
 	d.Started = false
