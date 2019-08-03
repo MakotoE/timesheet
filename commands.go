@@ -218,7 +218,7 @@ func Table() error {
 		return errors.WithStack(err)
 	}
 
-	return writer.Flush()
+	return errors.WithStack(writer.Flush())
 }
 
 type log struct {
