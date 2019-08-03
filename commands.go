@@ -122,6 +122,14 @@ func Status() error {
 	return nil
 }
 
+type durationCustomString time.Duration
+
+func (d durationCustomString) String() string {
+	rounded := time.Duration(d).Round(time.Minute)
+	remainder := time.Duration(d) - time.Duration(int(rounded.Hours())*int(time.Hour))
+	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
+}
+
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
 // total.
 func Table() error {
@@ -183,7 +191,7 @@ func Table() error {
 	for i := range dailyDurations {
 		outputTable[i] = make([]string, 3)
 		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
-		outputTable[i][1] = dailyDurations[i].String()
+		outputTable[i][1] = durationCustomString(dailyDurations[i]).String()
 	}
 
 	var shiftNDays int
@@ -207,11 +215,11 @@ func Table() error {
 				weeklyTotal += dailyDurations[day]
 			}
 
-			outputTable[i][2] = weeklyTotal.String()
+			outputTable[i][2] = durationCustomString(weeklyTotal).String()
 		}
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 20, 0, 0, ' ', tabwriter.DiscardEmptyColumns)
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.DiscardEmptyColumns)
 	csvWriter := csv.NewWriter(writer)
 	csvWriter.Comma = '\t'
 	if err := csvWriter.WriteAll(outputTable); err != nil {
