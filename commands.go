@@ -220,28 +220,32 @@ func readLog(logPath string) ([]entry, error) {
 
 	reader := csv.NewReader(file)
 	for {
-		record, err := reader.Read()
-		if err != nil {
-			if err == io.EOF {
-				return entries, nil
-			}
-			return nil, errors.WithStack(err)
+		entry, err := nextLogRecord(reader)
+		if err == io.EOF {
+			return entries, nil
 		}
-
-		newEntry := entry{}
-
-		if err := newEntry.date.UnmarshalText([]byte(record[0])); err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		duration, err := time.ParseDuration(record[1])
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		newEntry.duration = duration
-		entries = append(entries, newEntry)
+		entries = append(entries, *entry)
 	}
+}
+
+func nextLogRecord(reader *csv.Reader) (*entry, error) {
+	record, err := reader.Read()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	result := entry{}
+	if err := result.date.UnmarshalText([]byte(record[0])); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	duration, err := time.ParseDuration(record[1])
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	result.duration = duration
+	return &result, nil
 }
 
 func appendLogEntry(logPath string, duration time.Duration) error {
