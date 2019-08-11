@@ -131,6 +131,7 @@ func (d durationCustomString) String() string {
 	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
 }
 
+// TODO if there is a new error in log, notify user on timesheet status
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
 // total.
 func Table() error {
@@ -153,20 +154,13 @@ func Table() error {
 		return nil
 	}
 
-	firstLastDiff := entries[len(entries)-1].date.Sub(entries[0].date)
-	days := int(firstLastDiff.Hours()/24 + 0.5) // round up to include last day
-	dailyDurations := make([]time.Duration, days)
+	durations := dailyDurations(entries)
 
-	for _, entry := range entries {
-		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
-		dailyDurations[day] += entry.duration // TODO out of range error; dailyDurations needs one more element
-	}
-
-	outputTable := make([][]string, len(dailyDurations))
-	for i := range dailyDurations {
+	outputTable := make([][]string, len(durations))
+	for i := range durations {
 		outputTable[i] = make([]string, 3)
 		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
-		outputTable[i][1] = durationCustomString(dailyDurations[i]).String()
+		outputTable[i][1] = durationCustomString(durations[i]).String()
 	}
 
 	var shiftNDays int
@@ -176,7 +170,7 @@ func Table() error {
 		shiftNDays = int(7 - entries[0].date.Weekday())
 	}
 
-	for i := range dailyDurations {
+	for i := range durations {
 		if i%7 == shiftNDays {
 			var startFrom int
 			if i < 7 {
@@ -187,7 +181,7 @@ func Table() error {
 
 			weeklyTotal := time.Duration(0)
 			for day := startFrom; day < i+1; day++ {
-				weeklyTotal += dailyDurations[day]
+				weeklyTotal += durations[day]
 			}
 
 			outputTable[i][2] = durationCustomString(weeklyTotal).String()
@@ -202,6 +196,24 @@ func Table() error {
 	}
 
 	return errors.WithStack(writer.Flush())
+}
+
+// dailyDurations consolidates the table into a list of durations per day.
+func dailyDurations(entries []entry) []time.Duration {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	firstLastDiff := entries[len(entries)-1].date.Sub(entries[0].date)
+	days := int(firstLastDiff.Hours()/24 + 1)
+	dailyDurations := make([]time.Duration, days)
+
+	for _, entry := range entries {
+		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
+		dailyDurations[day] += entry.duration
+	}
+
+	return dailyDurations
 }
 
 type entry struct {
