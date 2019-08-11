@@ -123,14 +123,6 @@ func Status() error {
 	return nil
 }
 
-type durationCustomString time.Duration
-
-func (d durationCustomString) String() string {
-	rounded := time.Duration(d).Round(time.Minute)
-	remainder := time.Duration(d) - time.Duration(int(rounded.Hours())*int(time.Hour))
-	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
-}
-
 func weeklyTotal(durations []time.Duration) time.Duration {
 	sum := time.Duration(0)
 	for _, duration := range durations {
@@ -153,6 +145,12 @@ func max(a int, b int) int {
 	}
 
 	return b
+}
+
+func formatDuration(d time.Duration) string {
+	rounded := time.Duration(d).Round(time.Minute)
+	remainder := time.Duration(d) - time.Duration(int(rounded.Hours())*int(time.Hour))
+	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
 }
 
 // TODO if there is a new error in log, notify user on timesheet status
@@ -183,12 +181,12 @@ func Table() error {
 	outputTable := make([][]string, len(durations))
 	for i := range durations {
 		outputTable[i] = make([]string, 3)
-		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
-		outputTable[i][1] = durationCustomString(durations[i]).String()
+		date := entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i))
+		outputTable[i][0] = date.Format("2006-01-02")
+		outputTable[i][1] = formatDuration(durations[i])
 
 		if i%7 == sundayIndex(entries[0]) {
-			sum := weeklyTotal(durations[max(0, i-6) : i+1])
-			outputTable[i][2] = durationCustomString(sum).String()
+			outputTable[i][2] = formatDuration(weeklyTotal(durations[max(0, i-6) : i+1]))
 		}
 	}
 
