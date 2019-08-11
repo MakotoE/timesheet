@@ -131,6 +131,14 @@ func (d durationCustomString) String() string {
 	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
 }
 
+func weeklyTotal(durations []time.Duration) time.Duration {
+	sum := time.Duration(0)
+	for _, duration := range durations {
+		sum += duration
+	}
+	return sum
+}
+
 // TODO if there is a new error in log, notify user on timesheet status
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
 // total.
@@ -156,13 +164,6 @@ func Table() error {
 
 	durations := dailyDurations(entries)
 
-	outputTable := make([][]string, len(durations))
-	for i := range durations {
-		outputTable[i] = make([]string, 3)
-		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
-		outputTable[i][1] = durationCustomString(durations[i]).String()
-	}
-
 	var shiftNDays int
 	if entries[0].date.Weekday() == time.Sunday {
 		shiftNDays = 0
@@ -170,7 +171,12 @@ func Table() error {
 		shiftNDays = int(7 - entries[0].date.Weekday())
 	}
 
+	outputTable := make([][]string, len(durations))
 	for i := range durations {
+		outputTable[i] = make([]string, 3)
+		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
+		outputTable[i][1] = durationCustomString(durations[i]).String()
+
 		if i%7 == shiftNDays {
 			var startFrom int
 			if i < 7 {
@@ -179,12 +185,7 @@ func Table() error {
 				startFrom = i - 6
 			}
 
-			weeklyTotal := time.Duration(0)
-			for day := startFrom; day < i+1; day++ {
-				weeklyTotal += durations[day]
-			}
-
-			outputTable[i][2] = durationCustomString(weeklyTotal).String()
+			outputTable[i][2] = durationCustomString(weeklyTotal(durations[startFrom : i+1])).String()
 		}
 	}
 
@@ -287,6 +288,7 @@ func appendLogEntry(logPath string, duration time.Duration) error {
 }
 
 // Start writes start time to data file.
+// TODO don't start timer if already started
 func Start() error {
 	d, err := readData()
 	if err != nil {

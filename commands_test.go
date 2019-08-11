@@ -16,10 +16,10 @@ func Test_dailyDurations(t *testing.T) {
 		entries  []entry
 		expected []time.Duration
 	}{
-		// {
-		// 	nil,
-		// 	nil,
-		// },
+		{
+			nil,
+			nil,
+		},
 		{
 			[]entry{{
 				date:     time.Date(0, 1, 2, 0, 0, 0, 0, time.UTC),
