@@ -22,6 +22,14 @@ func onReady() {
 
 	startItem := systray.AddMenuItem("Start", "Start timer")
 	stopItem := systray.AddMenuItem("Stop", "Stop timer")
+
+	title := "Check error log (~/.config/timesheet/log.txt)"
+	tooltip := "Click to dismiss; delete error log to clear notice"
+	errorNoticeItem := systray.AddMenuItem(title, tooltip)
+	if !errorLogExists() {
+		errorNoticeItem.Hide()
+	}
+
 	exitItem := systray.AddMenuItem("Exit", "")
 
 	if err := updateIcon(); err != nil {
@@ -45,7 +53,7 @@ func onReady() {
 		return
 	}
 
-	// Watching the data file allows command line usage while the tray app is still running.
+	// Watching the data file allows concurrent processes—tray and cli—to update tray icon
 	if err := watcher.Add(home + "/.config/timesheet/data.json"); err != nil {
 		logErr(errors.WithStack(err))
 		systray.Quit()
@@ -67,6 +75,8 @@ loop:
 				systray.Quit()
 				break loop
 			}
+		case <-errorNoticeItem.ClickedCh:
+			errorNoticeItem.Hide()
 		case <-exitItem.ClickedCh:
 			systray.Quit()
 			break loop
@@ -116,15 +126,34 @@ func updateIcon() error {
 func logErr(e error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		panic(errors.WithStack(err))
+		panic(err)
 	}
 
 	file, err := os.OpenFile(home+"/.config/timesheet/log.txt", os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		panic(errors.WithStack(err))
+		panic(err)
 	}
 
 	if _, err := file.WriteString(fmt.Sprintf("%s\n%+v\n\n", time.Now(), e)); err != nil {
-		panic(errors.WithStack(err))
+		panic(err)
 	}
+}
+
+func errorLogExists() bool {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	file, err := os.OpenFile(home+"/.config/timesheet/log.txt", os.O_RDONLY, 0666)
+	if err != nil {
+		return false
+	}
+
+	info, err := file.Stat()
+	if err != nil {
+		return false
+	}
+
+	return info.Size() > 0
 }

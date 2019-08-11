@@ -46,7 +46,7 @@ func Started() (bool, error) {
 
 func readData() (*data, error) {
 	if Verbose {
-		fmt.Println("reading", dataPath)
+		fmt.Println("Reading", dataPath)
 	}
 
 	file, err := os.Open(dataPath)
@@ -74,7 +74,7 @@ func (d *data) write() error {
 	}
 
 	if Verbose {
-		fmt.Println("writing to", dataPath)
+		fmt.Println("Writing to", dataPath)
 	}
 
 	if err := os.Mkdir(dataDir(), os.ModePerm); err != nil && !os.IsExist(err) {
@@ -112,7 +112,7 @@ func Status() error {
 	}
 
 	if Verbose {
-		fmt.Printf("parsed data: %+v\n", d)
+		fmt.Printf("Parsed data: %+v\n", d)
 	}
 
 	if d.Started {
@@ -153,7 +153,6 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
 }
 
-// TODO if there is a new error in log, notify user on timesheet status
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
 // total.
 func Table() error {
@@ -281,7 +280,7 @@ func appendLogEntry(logPath string, duration time.Duration) error {
 	}
 
 	if Verbose {
-		fmt.Println("added new entry:", newRecord)
+		fmt.Println("Added new entry:", newRecord)
 	}
 
 	writer.Flush()
@@ -289,11 +288,15 @@ func appendLogEntry(logPath string, duration time.Duration) error {
 }
 
 // Start writes start time to data file.
-// TODO don't start timer if already started
 func Start() error {
 	d, err := readData()
 	if err != nil {
 		return err
+	}
+
+	if d.Started {
+		fmt.Println("Timer already started; exiting without changing start time")
+		return nil
 	}
 
 	d.Started = true
@@ -309,7 +312,7 @@ func Stop() error {
 	}
 
 	if !d.Started {
-		fmt.Fprintln(os.Stderr, "timer not started")
+		fmt.Fprintln(os.Stderr, "Timer not started")
 		return nil
 	}
 
