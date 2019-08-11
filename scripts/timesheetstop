@@ -1,0 +1,8 @@
+#!/bin/sh
+# To stop the time on sleep, put this in /lib/systemd/system-sleep
+case $1/$2 in
+  pre/*)
+    user='makoto'
+    sudo -u $user -- /home/$user/go/bin/timesheet -v stop
+    ;;
+esac
