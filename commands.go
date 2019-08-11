@@ -234,7 +234,7 @@ func readLog(logPath string) ([]entry, error) {
 	reader := csv.NewReader(file)
 	for {
 		entry, err := nextLogRecord(reader)
-		if err == io.EOF {
+		if errors.Cause(err) == io.EOF {
 			return entries, nil
 		}
 		entries = append(entries, *entry)
