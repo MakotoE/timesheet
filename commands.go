@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -122,14 +123,37 @@ func Status() error {
 	return nil
 }
 
-type durationCustomString time.Duration
+func weeklyTotal(durations []time.Duration) time.Duration {
+	sum := time.Duration(0)
+	for _, duration := range durations {
+		sum += duration
+	}
+	return sum
+}
 
-func (d durationCustomString) String() string {
+func sundayIndex(entry0 entry) int {
+	if entry0.date.Weekday() == time.Sunday {
+		return 0
+	}
+
+	return int(7 - entry0.date.Weekday())
+}
+
+func max(a int, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
+}
+
+func formatDuration(d time.Duration) string {
 	rounded := time.Duration(d).Round(time.Minute)
 	remainder := time.Duration(d) - time.Duration(int(rounded.Hours())*int(time.Hour))
 	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
 }
 
+// TODO if there is a new error in log, notify user on timesheet status
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
 // total.
 func Table() error {
@@ -143,83 +167,30 @@ func Table() error {
 		return nil
 	}
 
-	logFile, err := os.OpenFile(d.LogPath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	entries, err := readLog(d.LogPath)
 	if err != nil {
-		return errors.WithStack(err)
-	}
-	defer logFile.Close()
-
-	records, err := csv.NewReader(logFile).ReadAll()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	type entry struct {
-		date     time.Time
-		duration time.Duration
-	}
-
-	entries := make([]entry, len(records))
-
-	for i, record := range records {
-		if err := entries[i].date.UnmarshalText([]byte(record[0])); err != nil {
-			return errors.WithStack(err)
-		}
-
-		duration, err := time.ParseDuration(record[1])
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		entries[i].duration = duration
+		return err
 	}
 
 	if len(entries) == 0 {
 		return nil
 	}
 
-	firstLastDiff := entries[len(entries)-1].date.Sub(entries[0].date)
-	days := int(firstLastDiff.Hours()/24 + 0.5) // round up to include last day
-	dailyDurations := make([]time.Duration, days)
+	durations := dailyDurations(entries)
 
-	for _, entry := range entries {
-		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
-		dailyDurations[day] += entry.duration // TODO out of range error; dailyDurations needs one more element
-	}
-
-	outputTable := make([][]string, len(dailyDurations))
-	for i := range dailyDurations {
+	outputTable := make([][]string, len(durations))
+	for i := range durations {
 		outputTable[i] = make([]string, 3)
-		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
-		outputTable[i][1] = durationCustomString(dailyDurations[i]).String()
-	}
+		date := entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i))
+		outputTable[i][0] = date.Format("2006-01-02")
+		outputTable[i][1] = formatDuration(durations[i])
 
-	var shiftNDays int
-	if entries[0].date.Weekday() == time.Sunday {
-		shiftNDays = 0
-	} else {
-		shiftNDays = int(7 - entries[0].date.Weekday())
-	}
-
-	for i := range dailyDurations {
-		if i%7 == shiftNDays {
-			var startFrom int
-			if i < 7 {
-				startFrom = 0
-			} else {
-				startFrom = i - 6
-			}
-
-			weeklyTotal := time.Duration(0)
-			for day := startFrom; day < i+1; day++ {
-				weeklyTotal += dailyDurations[day]
-			}
-
-			outputTable[i][2] = durationCustomString(weeklyTotal).String()
+		if i%7 == sundayIndex(entries[0]) {
+			outputTable[i][2] = formatDuration(weeklyTotal(durations[max(0, i-6) : i+1]))
 		}
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.DiscardEmptyColumns)
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
 	csvWriter := csv.NewWriter(writer)
 	csvWriter.Comma = '\t'
 	if err := csvWriter.WriteAll(outputTable); err != nil {
@@ -229,28 +200,83 @@ func Table() error {
 	return errors.WithStack(writer.Flush())
 }
 
-type log struct {
-	*os.File
-	path string
+// dailyDurations consolidates the table into a list of durations per day.
+func dailyDurations(entries []entry) []time.Duration {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	firstLastDiff := entries[len(entries)-1].date.Sub(entries[0].date)
+	days := int(firstLastDiff.Hours()/24 + 1)
+	dailyDurations := make([]time.Duration, days)
+
+	for _, entry := range entries {
+		day := int(entry.date.Sub(entries[0].date).Hours() / 24)
+		dailyDurations[day] += entry.duration
+	}
+
+	return dailyDurations
 }
 
-func openLog(logPath string) (*log, error) {
+type entry struct {
+	date     time.Time
+	duration time.Duration
+}
+
+func readLog(logPath string) ([]entry, error) {
 	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	defer file.Close()
 
-	return &log{file, logPath}, nil
+	var entries []entry
+
+	reader := csv.NewReader(file)
+	for {
+		entry, err := nextLogRecord(reader)
+		if err == io.EOF {
+			return entries, nil
+		}
+		entries = append(entries, *entry)
+	}
 }
 
-func (t *log) appendEntry(duration time.Duration) error {
+func nextLogRecord(reader *csv.Reader) (*entry, error) {
+	record, err := reader.Read()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	result := entry{}
+	if err := result.date.UnmarshalText([]byte(record[0])); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	duration, err := time.ParseDuration(record[1])
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	result.duration = duration
+	return &result, nil
+}
+
+func appendLogEntry(logPath string, duration time.Duration) error {
+	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer file.Close()
+
 	currentTime, err := time.Now().MarshalText()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
+	writer := csv.NewWriter(file)
 	newRecord := []string{string(currentTime), duration.String()}
-	if err := csv.NewWriter(t.File).WriteAll([][]string{newRecord}); err != nil {
+	if err := writer.Write(newRecord); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -258,10 +284,12 @@ func (t *log) appendEntry(duration time.Duration) error {
 		fmt.Println("added new entry:", newRecord)
 	}
 
+	writer.Flush()
 	return nil
 }
 
 // Start writes start time to data file.
+// TODO don't start timer if already started
 func Start() error {
 	d, err := readData()
 	if err != nil {
@@ -290,24 +318,8 @@ func Stop() error {
 		return nil
 	}
 
-	logFile, err := os.OpenFile(d.LogPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	defer logFile.Close()
-
-	currentTime, err := time.Now().MarshalText()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	newRecord := []string{string(currentTime), time.Since(d.StartTime).String()}
-	if err := csv.NewWriter(logFile).WriteAll([][]string{newRecord}); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if Verbose {
-		fmt.Println("added new entry:", newRecord)
+	if err := appendLogEntry(d.LogPath, time.Since(d.StartTime)); err != nil {
+		return err
 	}
 
 	d.Started = false
