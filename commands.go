@@ -139,6 +139,22 @@ func weeklyTotal(durations []time.Duration) time.Duration {
 	return sum
 }
 
+func sundayIndex(entry0 entry) int {
+	if entry0.date.Weekday() == time.Sunday {
+		return 0
+	}
+
+	return int(7 - entry0.date.Weekday())
+}
+
+func max(a int, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
+}
+
 // TODO if there is a new error in log, notify user on timesheet status
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
 // total.
@@ -164,28 +180,15 @@ func Table() error {
 
 	durations := dailyDurations(entries)
 
-	var shiftNDays int
-	if entries[0].date.Weekday() == time.Sunday {
-		shiftNDays = 0
-	} else {
-		shiftNDays = int(7 - entries[0].date.Weekday())
-	}
-
 	outputTable := make([][]string, len(durations))
 	for i := range durations {
 		outputTable[i] = make([]string, 3)
 		outputTable[i][0] = entries[0].date.Add(time.Duration(int(time.Hour) * 24 * i)).Format("2006-01-02")
 		outputTable[i][1] = durationCustomString(durations[i]).String()
 
-		if i%7 == shiftNDays {
-			var startFrom int
-			if i < 7 {
-				startFrom = 0
-			} else {
-				startFrom = i - 6
-			}
-
-			outputTable[i][2] = durationCustomString(weeklyTotal(durations[startFrom : i+1])).String()
+		if i%7 == sundayIndex(entries[0]) {
+			sum := weeklyTotal(durations[max(0, i-6) : i+1])
+			outputTable[i][2] = durationCustomString(sum).String()
 		}
 	}
 

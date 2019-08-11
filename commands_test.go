@@ -60,6 +60,54 @@ func Test_dailyDurations(t *testing.T) {
 	}
 }
 
+func TestWeeklyTotal(t *testing.T) {
+	tests := []struct {
+		durations []time.Duration
+		expected  time.Duration
+	}{
+		{
+			nil,
+			0,
+		},
+		{
+			[]time.Duration{1},
+			1,
+		},
+		{
+			[]time.Duration{1, 2},
+			3,
+		},
+	}
+
+	for i, test := range tests {
+		assert.Equal(t, test.expected, weeklyTotal(test.durations), i)
+	}
+}
+
+func TestSundayIndex(t *testing.T) {
+	tests := []struct {
+		entry0   entry
+		expected int
+	}{
+		{
+			entry{date: time.Date(2019, 8, 11, 0, 0, 0, 0, time.UTC)}, // Sunday
+			0,
+		},
+		{
+			entry{date: time.Date(2019, 8, 10, 0, 0, 0, 0, time.UTC)}, // Saturday
+			1,
+		},
+		{
+			entry{date: time.Date(2019, 8, 12, 0, 0, 0, 0, time.UTC)}, // Monday
+			6,
+		},
+	}
+
+	for i, test := range tests {
+		assert.Equal(t, test.expected, sundayIndex(test.entry0), i)
+	}
+}
+
 func Test_nextLogRecord(t *testing.T) {
 	testDate := time.Date(1, 2, 3, 4, 5, 6, 7, time.UTC)
 	testDateText, err := testDate.MarshalText()
