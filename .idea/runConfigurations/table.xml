@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="table" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="timesheet" />
+    <working_directory value="$PROJECT_DIR$/timesheet" />
+    <go_parameters value="-i" />
+    <parameters value="table" />
+    <kind value="DIRECTORY" />
+    <filePath value="$PROJECT_DIR$/" />
+    <directory value="$PROJECT_DIR$/timesheet" />
+    <method v="2" />
+  </configuration>
+</component>
