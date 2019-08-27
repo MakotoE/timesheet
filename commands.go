@@ -148,9 +148,9 @@ func max(a int, b int) int {
 }
 
 func formatDuration(d time.Duration) string {
-	rounded := time.Duration(d).Round(time.Minute)
-	remainder := time.Duration(d) - time.Duration(int(rounded.Hours())*int(time.Hour))
-	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), time.Duration(remainder).Minutes())
+	rounded := d.Round(time.Minute)
+	remainder := rounded - time.Duration(int(rounded.Hours())*int(time.Hour))
+	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), remainder.Minutes())
 }
 
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly

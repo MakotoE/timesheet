@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_dailyDurations(t *testing.T) {
+func TestDailyDurations(t *testing.T) {
 	tests := []struct {
 		entries  []entry
 		expected []time.Duration
@@ -108,7 +108,7 @@ func TestSundayIndex(t *testing.T) {
 	}
 }
 
-func Test_nextLogRecord(t *testing.T) {
+func TestNextLogRecord(t *testing.T) {
 	testDate := time.Date(1, 2, 3, 4, 5, 6, 7, time.UTC)
 	testDateText, err := testDate.MarshalText()
 	require.Nil(t, err)
@@ -137,12 +137,13 @@ func Test_nextLogRecord(t *testing.T) {
 
 	for i, test := range tests {
 		result, err := nextLogRecord(csv.NewReader(strings.NewReader(test.text)))
+		checkerror.Check(t, test.expectError, err, i)
+
 		if test.expected == nil {
 			assert.Equal(t, test.expected, result, i)
 		} else {
 			assert.True(t, test.expected.date.Equal(result.date), i)
 			assert.Equal(t, test.expected.duration, result.duration, i)
 		}
-		checkerror.Check(t, test.expectError, err, i)
 	}
 }
