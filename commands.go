@@ -184,7 +184,7 @@ func Table() error {
 		outputTable[i][0] = date.Format("2006-01-02")
 		outputTable[i][1] = formatDuration(durations[i])
 
-		if i%7 == sundayIndex(entries[0]) {
+		if i%7 == sundayIndex(entries[0]) || i == len(durations)-1 {
 			outputTable[i][2] = formatDuration(weeklyTotal(durations[max(0, i-6) : i+1]))
 		}
 	}
