@@ -150,7 +150,7 @@ func max(a int, b int) int {
 func formatDuration(d time.Duration) string {
 	rounded := d.Round(time.Minute)
 	remainder := rounded - time.Duration(int(rounded.Hours())*int(time.Hour))
-	return fmt.Sprintf("%02.0fh%02.0fm", rounded.Hours(), remainder.Minutes())
+	return fmt.Sprintf("%02.0f:%02.0f", rounded.Hours(), remainder.Minutes())
 }
 
 // Table prints a csv table of daily durations where the columns are: date, duration worked, weekly
@@ -189,7 +189,7 @@ func Table() error {
 		}
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	csvWriter := csv.NewWriter(writer)
 	csvWriter.Comma = '\t'
 	if err := csvWriter.WriteAll(outputTable); err != nil {
