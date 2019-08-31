@@ -1,0 +1,17 @@
+# This systemd service automatically stops the timer on sleep.
+#   sudo cp timesheet.service /usr/lib/systemd/system
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable timesheet.service --now
+
+[Unit]
+Description=Stop timesheet timer
+# TODO Wasn't able to register a shutdown service
+Before=sleep.target suspend.target
+
+[Service]
+ExecStart=/home/makoto/go/bin/timesheet -v stop
+Type=oneshot
+User=makoto
+
+[Install]
+WantedBy=sleep.target suspend.target
